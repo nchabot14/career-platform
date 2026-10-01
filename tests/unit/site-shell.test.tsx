@@ -41,8 +41,10 @@ it("hydrates the footer year without a recoverable mismatch", async () => {
 
   const recoverableErrors: string[] = [];
 
+  let root: ReturnType<typeof hydrateRoot> | null = null;
+
   await act(async () => {
-    hydrateRoot(container, <SiteFooter initialYear={2025} />, {
+    root = hydrateRoot(container, <SiteFooter initialYear={2025} />, {
       onRecoverableError(error) {
         const message = error instanceof Error ? error.message : String(error);
         recoverableErrors.push(message);
@@ -53,4 +55,8 @@ it("hydrates the footer year without a recoverable mismatch", async () => {
   expect(serverHtml).toContain("© <time dateTime=\"2025\">2025</time> Career Platform");
   expect(container).toHaveTextContent("© 2026 Career Platform");
   expect(recoverableErrors).toHaveLength(0);
+
+  await act(async () => {
+    root?.unmount();
+  });
 });
