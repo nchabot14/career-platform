@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@/components/analytics";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getSiteUrl } from "@/lib/site-url";
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           </main>
           <SiteFooter initialYear={initialYear} />
         </div>
+        <Analytics />
       </body>
     </html>
   );
