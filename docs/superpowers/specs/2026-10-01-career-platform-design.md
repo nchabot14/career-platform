@@ -56,10 +56,10 @@ opportunity listings are explicitly out of scope for the first release.
 ## Architecture
 
 Use an integrated TypeScript full-stack application built with Next.js and
-PostgreSQL. Deploy the web application as one managed service and use managed
-providers for PostgreSQL, object storage, passwordless authentication, and
-transactional email. This minimizes first-release operating cost and
-maintenance while preserving a clean path to future platform features.
+PostgreSQL. Deploy the application on Vercel. Use Supabase for PostgreSQL,
+object storage, and passwordless authentication, and Resend for transactional
+email. This minimizes first-release operating cost and maintenance while
+preserving a clean path to future platform features.
 
 Public requests render the resume and portfolio through server-rendered,
 cacheable routes. Authenticated dashboard requests and all mutations execute
