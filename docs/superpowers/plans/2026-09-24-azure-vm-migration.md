@@ -172,7 +172,7 @@ repeat them.
 
 ## Code
 
-- [ ] **Step 1: Put the SQLite code and Python files on `main`**
+- [x] **Step 1: Put the SQLite code and Python files on `main`**
   - **Where:** laptop, in `~/isba-4715/career-platform`
   - **Run:**
     ```bash
@@ -188,7 +188,7 @@ repeat them.
   - **Check:** `git ls-tree --name-only origin/main | grep -E 'uv.lock|pyproject.toml'` prints both names, and `git show origin/main:lib/db/client.ts | head -1` shows `@libsql/client`.
   - **Undo:** On GitHub, use **Revert** on each merged pull request. Or locally: `git revert -m 1 <merge-commit>` for each merge, then `git push`.
 
-- [ ] **Step 2: Clone the repository on the VM**
+- [x] **Step 2: Clone the repository on the VM**
   - **Where:** VM
   - **Run:**
     ```bash
@@ -206,7 +206,7 @@ repeat them.
 
 ## Python
 
-- [ ] **Step 1: Install uv**
+- [x] **Step 1: Install uv**
   - **Where:** VM
   - **Run:**
     ```bash
@@ -222,7 +222,7 @@ repeat them.
     ```
     Then delete the line the installer added to `~/.profile` or `~/.bashrc` (the one containing `.local/bin/env`).
 
-- [ ] **Step 2: `uv sync` from the lockfile**
+- [x] **Step 2: `uv sync` from the lockfile**
   - **Where:** VM, in `~/career-platform`
   - **Run:**
     ```bash
@@ -232,7 +232,7 @@ repeat them.
   - **Check:** `uv run --no-sync python --version` prints `Python 3.14.x`, and `git status --porcelain uv.lock` prints nothing, which means the lockfile on the VM is unchanged.
   - **Undo:** `rm -rf ~/career-platform/.venv` and `uv python uninstall 3.14`
 
-- [ ] **Step 3: Install the Node dependencies the site actually runs on**
+- [x] **Step 3: Install the Node dependencies the site actually runs on**
   - **Where:** VM, in `~/career-platform`
   - **Run:**
     ```bash
@@ -244,7 +244,7 @@ repeat them.
 
 ## Config
 
-- [ ] **Step 1: Create `.env` from `.env.example`**
+- [x] **Step 1: Create `.env` from `.env.example`**
   - **Where:** VM, in `~/career-platform`
   - **Run:**
     ```bash
@@ -269,7 +269,7 @@ repeat them.
 > `pnpm db:migrate`, no `drizzle-kit`, no Alembic, no seed script. If the copy
 > fails, stop and report; don't make an empty database to fill the gap.
 
-- [ ] **Step 1: Copy the SQLite database from the laptop**
+- [x] **Step 1: Copy the SQLite database from the laptop**
   - **Where:** laptop, in `~/isba-4715/career-platform`
   - **Run:**
     ```bash
@@ -292,7 +292,7 @@ repeat them.
 uvicorn is replaced by the Next.js production server here (see "Before you
 start" item 2).
 
-- [ ] **Step 1: Build the site**
+- [x] **Step 1: Build the site**
   - **Where:** VM, in `~/career-platform`
   - **Run:**
     ```bash
@@ -302,7 +302,7 @@ start" item 2).
   - **Check:** The output ends with the route table (`○ /`), and `ls .next/BUILD_ID` succeeds. If it prints `Killed`, check `free -h` and **Packages** step 2.
   - **Undo:** `rm -rf ~/career-platform/.next`
 
-- [ ] **Step 2: Create a systemd service for the site**
+- [x] **Step 2: Create a systemd service for the site**
   - **Where:** VM
   - **Run:**
     ```bash
@@ -335,7 +335,7 @@ start" item 2).
 
 ## Verify
 
-- [ ] **Step 1: The site answers on the VM**
+- [x] **Step 1: The site answers on the VM**
   - **Where:** VM
   - **Run:**
     ```bash
@@ -346,7 +346,7 @@ start" item 2).
   - **Check:** Prints `200`, then `Career Platform`.
   - **Undo:** Nothing to undo; this step only reads.
 
-- [ ] **Step 2: The VM serves your actual data**
+- [x] **Step 2: The VM serves your actual data**
   - **Where:** laptop and VM
   - **Run:**
     1. Row counts for every table. Run on the laptop from `~/isba-4715/career-platform` with `DB=data/career_platform.db`, and on the VM with `DB=/home/azureuser/career-platform/data/career_platform.db`:
@@ -369,7 +369,7 @@ start" item 2).
   - **Check:** (1) The 12 counts are identical on both machines. (2) The two fingerprints are identical. (3) Prints `DATABASE_URL=file:/home/azureuser/career-platform/data/career_platform.db`. If the laptop database still has 0 rows, all counts are 0. That's a correct copy but proves little, so add your data on the laptop and redo **Data** step 1 first.
   - **Undo:** Nothing to undo; these commands only read.
 
-- [ ] **Step 3: View the site from the laptop through an SSH tunnel**
+- [x] **Step 3: View the site from the laptop through an SSH tunnel**
   - **Where:** laptop
   - **Run:**
     ```bash
@@ -380,7 +380,7 @@ start" item 2).
   - **Check:** The home page loads with the Career Platform header and footer.
   - **Undo:** Press Ctrl-C in that terminal to close the tunnel.
 
-- [ ] **Step 4: The site comes back after a reboot**
+- [x] **Step 4: The site comes back after a reboot**
   - **Where:** portal or laptop
   - **Run:** Portal: VM → **Restart**. Or from the laptop: `az vm restart -g rg-career-platform -n vm-career-platform`. When it's back up, repeat **Verify** step 1.
   - **Why:** Proves systemd starts the site (and swap comes back) without anyone logging in.
