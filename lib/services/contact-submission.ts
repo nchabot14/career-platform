@@ -4,6 +4,7 @@ import {
   setContactNotificationStatus,
 } from "@/lib/db/repositories/contact-messages";
 import { sendContactNotification } from "@/lib/email/contact-notification";
+import { logServerError } from "@/lib/observability/logger";
 import { takeContactAttempt } from "@/lib/security/rate-limit";
 
 export type ContactSubmission = { name: string; email: string; subject: string; message: string };
@@ -52,7 +53,7 @@ export async function submitContactMessage(
     await sendContactNotification(message);
   } catch (error) {
     notificationStatus = "failed";
-    console.error("contact_notification_failed", { messageId: message.id, error: (error as Error).name });
+    logServerError("contact_notification_failed", error, { messageId: message.id });
   }
 
   await setContactNotificationStatus(message.id, notificationStatus);
