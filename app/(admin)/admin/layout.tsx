@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdminNav } from "@/components/admin/admin-nav";
 import { OwnerAuthorizationError, requireOwner } from "@/lib/auth/owner";
 
 export const metadata: Metadata = {
@@ -54,6 +55,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
           </h1>
           <p className="text-sm text-slate-600">{result.owner.email}</p>
         </div>
+        <AdminNav />
       </header>
 
       <div className="flex-1">{children}</div>
