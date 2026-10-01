@@ -144,10 +144,11 @@ Then `chmod +x ~/bin/backup-career-platform` and schedule it daily with
 ```
 
 Backups on the VM don't survive losing the VM. Copy them off regularly, for
-example from the laptop:
+example from the laptop, replacing `<VM_PUBLIC_IP>` with the VM's address
+(`az vm show -d -g rg-career-platform -n vm-career-platform --query publicIps -o tsv`):
 
 ```bash
-scp -i ~/.ssh/isba4775_azure 'azureuser@20.25.246.180:backups/*' ~/career-platform-backups/
+scp -i ~/.ssh/isba4775_azure 'azureuser@<VM_PUBLIC_IP>:backups/*' ~/career-platform-backups/
 ```
 
 ## Restoring
