@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { requireOwner } from "@/lib/auth/owner";
+import { transitionContactMessageStatus } from "@/lib/db/repositories/contact-messages";
+import type { ContactMessageStatus } from "@/lib/db/schema";
 import {
   deleteContent,
   publishContent,
@@ -99,4 +101,11 @@ export async function uploadResumeAction(
     if (error instanceof ResumeUploadError) return { error: error.message };
     throw error;
   }
+}
+
+export async function setMessageStatusAction(id: string, status: ContactMessageStatus) {
+  await requireOwner();
+
+  await transitionContactMessageStatus(id, status);
+  redirect("/admin/messages");
 }

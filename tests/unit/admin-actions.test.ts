@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   publishContent: vi.fn(),
   deleteContent: vi.fn(),
   replaceCurrentResume: vi.fn(),
+  transitionContactMessageStatus: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`REDIRECT:${path}`);
   }),
@@ -27,9 +28,14 @@ vi.mock("@/lib/storage/resumes", () => ({
   ResumeUploadError: class extends Error {},
 }));
 
+vi.mock("@/lib/db/repositories/contact-messages", () => ({
+  transitionContactMessageStatus: mocks.transitionContactMessageStatus,
+}));
+
 import {
   deleteContentAction,
   saveContentAction,
+  setMessageStatusAction,
   setPublicationAction,
   uploadResumeAction,
 } from "@/app/(admin)/admin/actions";
@@ -52,11 +58,20 @@ it("checks the owner before any save, publish, delete, or upload", async () => {
   await expect(setPublicationAction("project", "p1", "published")).rejects.toBe(forbidden);
   await expect(deleteContentAction("project", "p1", form)).rejects.toBe(forbidden);
   await expect(uploadResumeAction({}, form)).rejects.toBe(forbidden);
+  await expect(setMessageStatusAction("m1", "archived")).rejects.toBe(forbidden);
 
   expect(mocks.saveProject).not.toHaveBeenCalled();
   expect(mocks.publishContent).not.toHaveBeenCalled();
   expect(mocks.deleteContent).not.toHaveBeenCalled();
   expect(mocks.replaceCurrentResume).not.toHaveBeenCalled();
+  expect(mocks.transitionContactMessageStatus).not.toHaveBeenCalled();
+});
+
+it("changes a message's status for the owner", async () => {
+  mocks.requireOwner.mockResolvedValue({ id: "o", email: "o@example.com" });
+
+  await expect(setMessageStatusAction("m1", "read")).rejects.toThrow("REDIRECT:/admin/messages");
+  expect(mocks.transitionContactMessageStatus).toHaveBeenCalledWith("m1", "read");
 });
 
 it("returns field errors with the submitted values so the form can redisplay them", async () => {
