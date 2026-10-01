@@ -20,11 +20,6 @@ export function SiteHeader() {
                 Home
               </Link>
             </li>
-            <li>
-              <Link href="/resume" className="transition hover:text-slate-950">
-                Resume
-              </Link>
-            </li>
           </ul>
         </nav>
       </div>

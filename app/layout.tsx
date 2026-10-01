@@ -24,6 +24,8 @@ type RootLayoutProps = Readonly<{
 }>;
 
 export default function RootLayout({ children }: RootLayoutProps) {
+  const initialYear = new Date().getFullYear();
+
   return (
     <html
       lang="en"
@@ -35,7 +37,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <main id="main-content" className="flex flex-1">
             {children}
           </main>
-          <SiteFooter />
+          <SiteFooter initialYear={initialYear} />
         </div>
       </body>
     </html>
