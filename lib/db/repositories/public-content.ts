@@ -1,12 +1,20 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
+  education,
   experiences,
   profiles,
   projects,
+  resumeDocuments,
+  skills,
+  socialLinks,
+  type Education,
   type Experience,
   type Profile,
   type Project,
+  type ResumeDocument,
+  type Skill,
+  type SocialLink,
 } from "@/lib/db/schema";
 
 export async function getPublishedProfile(): Promise<Profile | undefined> {
@@ -51,4 +59,45 @@ export async function getPublishedProjectBySlug(
     .limit(1);
 
   return project;
+}
+
+export async function listPublishedEducation(): Promise<Education[]> {
+  return db
+    .select()
+    .from(education)
+    .where(eq(education.publicationState, "published"))
+    .orderBy(asc(education.sortOrder));
+}
+
+export async function listPublishedSkills(): Promise<Skill[]> {
+  return db
+    .select()
+    .from(skills)
+    .where(eq(skills.publicationState, "published"))
+    .orderBy(asc(skills.sortOrder), asc(skills.name));
+}
+
+export async function listPublishedSocialLinks(): Promise<SocialLink[]> {
+  return db
+    .select()
+    .from(socialLinks)
+    .where(eq(socialLinks.publicationState, "published"))
+    .orderBy(asc(socialLinks.sortOrder));
+}
+
+export async function getCurrentPublishedResume(): Promise<
+  ResumeDocument | undefined
+> {
+  const [resume] = await db
+    .select()
+    .from(resumeDocuments)
+    .where(
+      and(
+        eq(resumeDocuments.isCurrent, true),
+        eq(resumeDocuments.publicationState, "published"),
+      ),
+    )
+    .limit(1);
+
+  return resume;
 }

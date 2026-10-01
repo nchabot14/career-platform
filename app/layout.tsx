@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@/components/analytics";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,8 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: "Career Platform",
-  description: "Recruiter-first career platform for a senior software engineer.",
+  description: "Resume, projects, and contact details.",
 };
 
 type RootLayoutProps = Readonly<{
@@ -39,6 +42,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           </main>
           <SiteFooter initialYear={initialYear} />
         </div>
+        <Analytics />
       </body>
     </html>
   );

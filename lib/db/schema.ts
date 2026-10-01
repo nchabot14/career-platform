@@ -245,8 +245,15 @@ export const applicationActivities = sqliteTable("application_activity", {
 export type Profile = InferSelectModel<typeof profiles>;
 export type Experience = InferSelectModel<typeof experiences>;
 export type Project = InferSelectModel<typeof projects>;
+export type Education = InferSelectModel<typeof education>;
+export type Skill = InferSelectModel<typeof skills>;
+export type SocialLink = InferSelectModel<typeof socialLinks>;
+export type ResumeDocument = InferSelectModel<typeof resumeDocuments>;
 export type JobApplication = InferSelectModel<typeof jobApplications>;
 export type ApplicationActivity = InferSelectModel<typeof applicationActivities>;
+export type ApplicationContact = InferSelectModel<typeof applicationContacts>;
+export type ApplicationDocument = InferSelectModel<typeof applicationDocuments>;
+export const applicationStatuses = applicationStatusValues;
 export type ContactMessage = InferSelectModel<typeof contactMessages>;
 
 export type NewContactMessage = Omit<
@@ -259,5 +266,13 @@ export type NewApplication = Omit<
 >;
 export type NewApplicationActivity = Omit<
   InferInsertModel<typeof applicationActivities>,
+  "id" | "createdAt" | "updatedAt"
+>;
+export type NewApplicationContact = Omit<
+  InferInsertModel<typeof applicationContacts>,
+  "id" | "createdAt" | "updatedAt"
+>;
+export type NewApplicationDocument = Omit<
+  InferInsertModel<typeof applicationDocuments>,
   "id" | "createdAt" | "updatedAt"
 >;

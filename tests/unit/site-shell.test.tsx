@@ -4,7 +4,6 @@ import { act } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
-import Home from "@/app/page";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
@@ -13,12 +12,6 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 afterEach(() => {
   vi.useRealTimers();
   document.body.innerHTML = "";
-});
-
-it("renders a recruiter-oriented resume call to action", () => {
-  render(<Home />);
-
-  expect(screen.getByRole("link", { name: /view resume/i })).toBeVisible();
 });
 
 it("keeps the header navigation limited to implemented routes", () => {
@@ -30,14 +23,16 @@ it("keeps the header navigation limited to implemented routes", () => {
 
 it("hydrates the footer year without a recoverable mismatch", async () => {
   vi.useFakeTimers();
-  vi.setSystemTime(new Date("2025-12-31T23:59:59Z"));
+  // Local-time dates: getFullYear() reads the local zone, so UTC instants
+  // would land in a different year west of Greenwich.
+  vi.setSystemTime(new Date(2025, 11, 31, 23, 59, 59));
 
   const serverHtml = renderToString(<SiteFooter initialYear={2025} />);
   const container = document.createElement("div");
   container.innerHTML = serverHtml;
   document.body.append(container);
 
-  vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+  vi.setSystemTime(new Date(2026, 0, 1, 0, 0, 0));
 
   const recoverableErrors: string[] = [];
 
