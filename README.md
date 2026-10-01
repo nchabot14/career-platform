@@ -22,16 +22,28 @@ Tailwind CSS.
    cp .env.example .env.local
    ```
 
-3. Fill in the required values for Supabase, PostgreSQL, Resend, and analytics.
+3. Fill in the required values for Supabase, Resend, and analytics.
 
-   Integration tests require `DATABASE_URL`; they apply the checked-in Drizzle
-   migration automatically before running.
+4. Create the local SQLite database:
 
-4. Start the development server:
+   ```bash
+   pnpm db:migrate
+   ```
+
+   The database lives at `data/career_platform.db` unless `DATABASE_URL`
+   points elsewhere. `pnpm test:integration` uses a separate
+   `data/career_platform.test.db` and applies the Drizzle migrations itself.
+
+5. Start the development server:
 
    ```bash
    pnpm dev
    ```
+
+## Database commands
+
+- `pnpm db:generate` — create a migration after editing `lib/db/schema.ts`
+- `pnpm db:migrate` — apply pending migrations
 
 ## Quality commands
 

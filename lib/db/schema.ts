@@ -1,18 +1,11 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import {
-  bigint,
-  boolean,
-  date,
   integer,
-  jsonb,
-  pgEnum,
-  pgTable,
+  sqliteTable,
   text,
-  timestamp,
   uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
+} from "drizzle-orm/sqlite-core";
 
 const publicationStateValues = ["draft", "published"] as const;
 const contactMessageStatusValues = ["unread", "read", "archived"] as const;
@@ -32,107 +25,111 @@ export type ApplicationStatus = (typeof applicationStatusValues)[number];
 export type ContactNotificationStatus =
   (typeof contactNotificationStatusValues)[number];
 
-export const publicationStateEnum = pgEnum(
-  "publication_state",
-  publicationStateValues,
-);
-export const contactMessageStatusEnum = pgEnum(
-  "contact_message_status",
-  contactMessageStatusValues,
-);
-export const applicationStatusEnum = pgEnum(
-  "application_status",
-  applicationStatusValues,
-);
+// SQLite has no enum type, so these are text columns whose allowed values
+// are enforced by TypeScript rather than by the database.
+const publicationState = (name: string) =>
+  text(name, { enum: publicationStateValues });
+const contactMessageStatus = (name: string) =>
+  text(name, { enum: contactMessageStatusValues });
+const applicationStatus = (name: string) =>
+  text(name, { enum: applicationStatusValues });
+
+const id = () =>
+  text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID());
+
+// Stored as Unix epoch milliseconds; Drizzle maps them to Date objects.
+const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
+
+// Stored as ISO YYYY-MM-DD strings, matching the former PostgreSQL date mode.
+const date = (name: string) => text(name);
+
+const jsonArray = <T>(name: string) =>
+  text(name, { mode: "json" })
+    .$type<T[]>()
+    .notNull()
+    .default(sql`'[]'`);
 
 const timestamps = {
-  createdAt: timestamp("created_at", { withTimezone: true })
+  createdAt: timestamp("created_at")
     .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .$defaultFn(() => new Date()),
+  updatedAt: timestamp("updated_at")
     .notNull()
-    .defaultNow(),
+    .$defaultFn(() => new Date()),
 };
 
-export const profiles = pgTable("profile", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const profiles = sqliteTable("profile", {
+  id: id(),
   name: text("name").notNull(),
   headline: text("headline").notNull(),
   summary: text("summary").notNull(),
   location: text("location"),
   availability: text("availability"),
   visibility: text("visibility").notNull().default("public"),
-  publicationState: publicationStateEnum("publication_state")
+  publicationState: publicationState("publication_state")
     .notNull()
     .default("draft"),
   ...timestamps,
 });
 
-export const experiences = pgTable("experience", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const experiences = sqliteTable("experience", {
+  id: id(),
   employer: text("employer").notNull(),
   title: text("title").notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   description: text("description").notNull(),
-  highlights: jsonb("highlights")
-    .$type<string[]>()
-    .notNull()
-    .default(sql`'[]'::jsonb`),
+  highlights: jsonArray<string>("highlights"),
   sortOrder: integer("sort_order").notNull().default(0),
-  publicationState: publicationStateEnum("publication_state")
+  publicationState: publicationState("publication_state")
     .notNull()
     .default("draft"),
   ...timestamps,
 });
 
-export const education = pgTable("education", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const education = sqliteTable("education", {
+  id: id(),
   institution: text("institution").notNull(),
   credential: text("credential").notNull(),
   fieldOfStudy: text("field_of_study"),
   startDate: date("start_date"),
   endDate: date("end_date"),
   sortOrder: integer("sort_order").notNull().default(0),
-  publicationState: publicationStateEnum("publication_state")
+  publicationState: publicationState("publication_state")
     .notNull()
     .default("draft"),
   ...timestamps,
 });
 
-export const skills = pgTable("skill", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const skills = sqliteTable("skill", {
+  id: id(),
   name: text("name").notNull(),
   category: text("category").notNull(),
   proficiencyOrContext: text("proficiency_or_context"),
   certificationDetails: text("certification_details"),
   sortOrder: integer("sort_order").notNull().default(0),
-  publicationState: publicationStateEnum("publication_state")
+  publicationState: publicationState("publication_state")
     .notNull()
     .default("draft"),
   ...timestamps,
 });
 
-export const projects = pgTable(
+export const projects = sqliteTable(
   "project",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: id(),
     title: text("title").notNull(),
     slug: text("slug").notNull(),
     summary: text("summary").notNull(),
     body: text("body").notNull(),
     role: text("role"),
-    technologies: jsonb("technologies")
-      .$type<string[]>()
-      .notNull()
-      .default(sql`'[]'::jsonb`),
-    links: jsonb("links")
-      .$type<Array<{ label: string; href: string }>>()
-      .notNull()
-      .default(sql`'[]'::jsonb`),
+    technologies: jsonArray<string>("technologies"),
+    links: jsonArray<{ label: string; href: string }>("links"),
     coverImage: text("cover_image"),
     sortOrder: integer("sort_order").notNull().default(0),
-    publicationState: publicationStateEnum("publication_state")
+    publicationState: publicationState("publication_state")
       .notNull()
       .default("draft"),
     ...timestamps,
@@ -140,16 +137,16 @@ export const projects = pgTable(
   (table) => [uniqueIndex("project_slug_unique").on(table.slug)],
 );
 
-export const resumeDocuments = pgTable(
+export const resumeDocuments = sqliteTable(
   "resume_document",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: id(),
     storageKey: text("storage_key").notNull(),
     filename: text("filename").notNull(),
     mimeType: text("mime_type").notNull(),
-    size: bigint("size", { mode: "number" }).notNull(),
-    isCurrent: boolean("is_current").notNull().default(false),
-    publicationState: publicationStateEnum("publication_state")
+    size: integer("size").notNull(),
+    isCurrent: integer("is_current", { mode: "boolean" }).notNull().default(false),
+    publicationState: publicationState("publication_state")
       .notNull()
       .default("draft"),
     ...timestamps,
@@ -157,32 +154,32 @@ export const resumeDocuments = pgTable(
   (table) => [
     uniqueIndex("resume_document_current_unique")
       .on(table.isCurrent)
-      .where(sql`${table.isCurrent} = true`),
+      .where(sql`${table.isCurrent} = 1`),
   ],
 );
 
-export const socialLinks = pgTable("social_link", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const socialLinks = sqliteTable("social_link", {
+  id: id(),
   label: text("label").notNull(),
   url: text("url").notNull(),
   icon: text("icon"),
   sortOrder: integer("sort_order").notNull().default(0),
-  publicationState: publicationStateEnum("publication_state")
+  publicationState: publicationState("publication_state")
     .notNull()
     .default("draft"),
   ...timestamps,
 });
 
-export const contactMessages = pgTable("contact_message", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const contactMessages = sqliteTable("contact_message", {
+  id: id(),
   senderName: text("sender_name").notNull(),
   senderEmail: text("sender_email").notNull(),
   subject: text("subject").notNull(),
   message: text("message").notNull(),
-  submittedAt: timestamp("submitted_at", { withTimezone: true })
+  submittedAt: timestamp("submitted_at")
     .notNull()
-    .defaultNow(),
-  status: contactMessageStatusEnum("status").notNull().default("unread"),
+    .$defaultFn(() => new Date()),
+  status: contactMessageStatus("status").notNull().default("unread"),
   notificationStatus: text("notification_status")
     .$type<ContactNotificationStatus>()
     .notNull()
@@ -190,22 +187,22 @@ export const contactMessages = pgTable("contact_message", {
   ...timestamps,
 });
 
-export const jobApplications = pgTable("job_application", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const jobApplications = sqliteTable("job_application", {
+  id: id(),
   company: text("company").notNull(),
   role: text("role").notNull(),
   jobUrl: text("job_url"),
   source: text("source"),
-  status: applicationStatusEnum("status").notNull().default("saved"),
-  appliedAt: timestamp("applied_at", { withTimezone: true }),
+  status: applicationStatus("status").notNull().default("saved"),
+  appliedAt: timestamp("applied_at"),
   notes: text("notes"),
-  nextFollowUpAt: timestamp("next_follow_up_at", { withTimezone: true }),
+  nextFollowUpAt: timestamp("next_follow_up_at"),
   ...timestamps,
 });
 
-export const applicationContacts = pgTable("application_contact", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  applicationId: uuid("application_id")
+export const applicationContacts = sqliteTable("application_contact", {
+  id: id(),
+  applicationId: text("application_id")
     .notNull()
     .references(() => jobApplications.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -217,31 +214,31 @@ export const applicationContacts = pgTable("application_contact", {
   ...timestamps,
 });
 
-export const applicationDocuments = pgTable("application_document", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  applicationId: uuid("application_id")
+export const applicationDocuments = sqliteTable("application_document", {
+  id: id(),
+  applicationId: text("application_id")
     .notNull()
     .references(() => jobApplications.id, { onDelete: "cascade" }),
   storageKey: text("storage_key").notNull(),
   filename: text("filename").notNull(),
   mimeType: text("mime_type").notNull(),
-  size: bigint("size", { mode: "number" }).notNull(),
+  size: integer("size").notNull(),
   category: text("category").notNull(),
   ...timestamps,
 });
 
-export const applicationActivities = pgTable("application_activity", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  applicationId: uuid("application_id")
+export const applicationActivities = sqliteTable("application_activity", {
+  id: id(),
+  applicationId: text("application_id")
     .notNull()
     .references(() => jobApplications.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
-  occurredAt: timestamp("occurred_at", { withTimezone: true })
+  occurredAt: timestamp("occurred_at")
     .notNull()
-    .defaultNow(),
+    .$defaultFn(() => new Date()),
   note: text("note"),
-  priorStatus: applicationStatusEnum("prior_status"),
-  resultingStatus: applicationStatusEnum("resulting_status"),
+  priorStatus: applicationStatus("prior_status"),
+  resultingStatus: applicationStatus("resulting_status"),
   ...timestamps,
 });
 
