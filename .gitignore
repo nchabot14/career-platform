@@ -206,6 +206,15 @@ tempCodeRunnerFile.py
 # Local isolated Git worktrees
 .worktrees/
 
+# Node.js / Next.js
+node_modules/
+.next/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+test-results/
+playwright-report/
+
 # Ruff stuff:
 .ruff_cache/
 
