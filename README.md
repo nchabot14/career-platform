@@ -24,6 +24,9 @@ Tailwind CSS.
 
 3. Fill in the required values for Supabase, PostgreSQL, Resend, and analytics.
 
+   Integration tests require `DATABASE_URL`; they apply the checked-in Drizzle
+   migration automatically before running.
+
 4. Start the development server:
 
    ```bash
