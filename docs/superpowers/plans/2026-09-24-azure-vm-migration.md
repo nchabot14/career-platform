@@ -382,3 +382,29 @@ start" item 2).
   - **Why:** Proves systemd starts the site (and swap comes back) without anyone logging in.
   - **Check:** Verify step 1 prints `200` and `Career Platform`, and `swapon --show` lists `/swapfile`.
   - **Undo:** Nothing to undo. A restart changes no configuration.
+
+## Verification results
+
+Verify ran twice on 2026-10-01:
+
+- **Run A (first migration):** the laptop database was empty, with all 12 tables at 0 rows.
+- **Run B (after loading the resume):** the database held the owner's resume data and was re-copied with the **Data** step.
+
+Run B repeated only steps 1 and 2.1–2.2. The other steps were not repeated.
+
+| Check | What it tested | Run A result | Run B result |
+|---|---|---|---|
+| Verify 1: site answers on the VM | `curl http://127.0.0.1:3000/` on the VM returns HTTP 200, and the page contains "Career Platform" | ✅ `200`, "Career Platform" | ✅ `200` |
+| Verify 2.1: row counts | Row counts for all 12 tables match between the laptop and the VM | ✅ Identical; every table 0 | ✅ Identical: profile 1, experience 2, education 2, project 1, skill 4, other 7 tables 0 |
+| Verify 2.2: content fingerprint | SHA-256 of `sqlite3 .dump` (excluding `__drizzle_migrations`) matches between the laptop and the VM | ✅ Identical (`b27d1269…`) | ⚠️ False mismatch (laptop `772ecefa…`, VM `a43e2ca4…`). The files are identical: file SHA-256 `c0cd661e…` on both, and `project.body` bytes `ce3a4d04…` on both. The laptop's `sqlite3` 3.51.0 dumps a line break as `unistr('\u000a')`; the VM's 3.45.1 dumps it as `replace(…,char(10))`. |
+| Verify 2.3: service uses that file | The running service's `.env` has `DATABASE_URL=file:/home/azureuser/career-platform/data/career_platform.db` | ✅ Exact match | Not repeated |
+| Verify 3: SSH tunnel | Through `ssh -L 3000:127.0.0.1:3000`, the laptop's `http://localhost:3000/` serves the site | ✅ `200`, `<title>Career Platform</title>` (tested with `curl`, not a browser) | Not repeated |
+| Verify 4: survives reboot | After `az vm restart`, the site and swap come back without anyone logging in | ✅ VM running; `200`, "Career Platform"; service `active`; `/swapfile` 2G on | Not repeated |
+
+**Not covered:** no check shows the data on a web page, because no page
+reads the database yet. Verify 2 proves the VM has the data and the service
+points at it, not that the site displays it.
+
+**Fix for Verify 2.2:** the dump fingerprint only works when both machines
+run the same `sqlite3` version. Comparing the file's SHA-256 with the service
+stopped (as in the **Data** step's Check) is reliable across versions.
