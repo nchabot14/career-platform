@@ -1,0 +1,28 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
+
+const emptySubscribe = () => () => {};
+
+type SiteFooterProps = Readonly<{
+  initialYear: number;
+}>;
+
+export function SiteFooter({ initialYear }: SiteFooterProps) {
+  const currentYear = useSyncExternalStore(
+    emptySubscribe,
+    () => new Date().getFullYear(),
+    () => initialYear,
+  );
+
+  return (
+    <footer className="border-t border-slate-200 bg-white">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-6 text-sm text-slate-600 sm:px-10">
+        <p>Building recruiter-ready software experiences.</p>
+        <p>
+          &copy; <time dateTime={String(currentYear)}>{currentYear}</time> Career Platform
+        </p>
+      </div>
+    </footer>
+  );
+}
