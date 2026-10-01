@@ -1,11 +1,12 @@
 import { defineConfig } from "drizzle-kit";
+import { getDatabaseUrl } from "./lib/db/database-url";
 
 export default defineConfig({
   schema: "./lib/db/schema.ts",
   out: "./drizzle",
-  dialect: "postgresql",
+  dialect: "turso",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "",
+    url: getDatabaseUrl(),
   },
   verbose: true,
   strict: true,
