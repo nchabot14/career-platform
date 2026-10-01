@@ -1,9 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOwner } from "@/lib/auth/owner";
 import { transitionContactMessageStatus } from "@/lib/db/repositories/contact-messages";
-import type { ContactMessageStatus } from "@/lib/db/schema";
+import type { ApplicationStatus, ContactMessageStatus } from "@/lib/db/schema";
 import {
   deleteContent,
   publishContent,
@@ -18,6 +19,14 @@ import {
   type FieldErrors,
   type SaveResult,
 } from "@/lib/services/content-management";
+import {
+  addApplicationContact,
+  addApplicationDocument,
+  ApplicationDocumentError,
+  changeApplicationStatus,
+  createApplication,
+  updateApplication,
+} from "@/lib/services/application-management";
 import { replaceCurrentResume, ResumeUploadError } from "@/lib/storage/resumes";
 import { toUploadedFile } from "@/lib/storage/uploaded-file";
 
@@ -96,6 +105,7 @@ export async function uploadResumeAction(
 
   try {
     const resume = await replaceCurrentResume(await toUploadedFile(file));
+    revalidatePath("/admin/resume");
     return { message: `Uploaded ${resume.filename}. It is now the published resume.` };
   } catch (error) {
     if (error instanceof ResumeUploadError) return { error: error.message };
@@ -108,4 +118,72 @@ export async function setMessageStatusAction(id: string, status: ContactMessageS
 
   await transitionContactMessageStatus(id, status);
   redirect("/admin/messages");
+}
+
+export async function createApplicationAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requireOwner();
+
+  const values = formValues(formData);
+  const result = await createApplication(values);
+  if (!result.ok) return { fieldErrors: result.fieldErrors, values, message: "Fix the highlighted fields and save again." };
+
+  redirect(`/admin/applications/${result.id}`);
+}
+
+export async function updateApplicationAction(
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requireOwner();
+
+  const values = formValues(formData);
+  const result = await updateApplication(id, values);
+  if (!result.ok) return { fieldErrors: result.fieldErrors, values, message: "Fix the highlighted fields and save again." };
+
+  redirect(`/admin/applications/${id}?saved=1`);
+}
+
+export async function changeApplicationStatusAction(id: string, formData: FormData) {
+  await requireOwner();
+
+  await changeApplicationStatus(id, String(formData.get("status")) as ApplicationStatus);
+  redirect(`/admin/applications/${id}`);
+}
+
+export async function addApplicationContactAction(
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requireOwner();
+
+  const values = formValues(formData);
+  const result = await addApplicationContact(id, values);
+  if (!result.ok) return { fieldErrors: result.fieldErrors, values, message: "Fix the highlighted fields and save again." };
+
+  redirect(`/admin/applications/${id}?saved=1`);
+}
+
+export async function uploadApplicationDocumentAction(
+  id: string,
+  _previous: UploadState,
+  formData: FormData,
+): Promise<UploadState> {
+  await requireOwner();
+
+  const file = formData.get("document");
+  if (!(file instanceof File)) return { error: "Choose a file to upload." };
+
+  try {
+    const document = await addApplicationDocument(id, await toUploadedFile(file), String(formData.get("category") ?? ""));
+    revalidatePath(`/admin/applications/${id}`);
+    return { message: `Uploaded ${document.filename}.` };
+  } catch (error) {
+    if (error instanceof ApplicationDocumentError) return { error: error.message };
+    throw error;
+  }
 }

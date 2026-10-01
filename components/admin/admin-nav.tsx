@@ -10,6 +10,7 @@ const links = [
   { href: "/admin/links", label: "Links" },
   { href: "/admin/resume", label: "Resume PDF" },
   { href: "/admin/messages", label: "Messages" },
+  { href: "/admin/applications", label: "Applications" },
 ];
 
 export function AdminNav() {

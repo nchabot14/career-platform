@@ -6,7 +6,8 @@ import type { FormState } from "@/app/(admin)/admin/actions";
 export type FieldConfig = {
   name: string;
   label: string;
-  type?: "text" | "textarea" | "date" | "number" | "url";
+  type?: "text" | "textarea" | "date" | "number" | "url" | "email" | "select";
+  options?: { value: string; label: string }[];
   required?: boolean;
   help?: string;
   rows?: number;
@@ -62,6 +63,14 @@ export function EntityForm({ action, fields, initialValues, submitLabel }: Entit
             </label>
             {field.type === "textarea" ? (
               <textarea rows={field.rows ?? 4} {...shared} />
+            ) : field.type === "select" ? (
+              <select {...shared}>
+                {field.options?.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             ) : (
               <input type={field.type ?? "text"} {...shared} />
             )}

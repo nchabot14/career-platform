@@ -19,6 +19,11 @@ export default defineConfig({
       DATABASE_URL: "file:./data/career_platform.e2e.db",
       FILE_STORAGE_DIR: "data/e2e-files",
       NEXT_PUBLIC_SITE_URL: baseURL,
+      // Placeholder Supabase settings let the /admin guard run and redirect
+      // signed-out visitors; no real auth server is contacted without a session.
+      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "e2e-placeholder-anon-key",
+      OWNER_EMAIL: "owner@example.com",
     },
   },
 });
