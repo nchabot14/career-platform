@@ -20,9 +20,12 @@ as this plan's sections in the same order.
 ## Global Constraints
 
 - VM: `vm-career-platform` in resource group `rg-career-platform`.
-- VM public IP: `20.25.246.180` (from `az vm show -d`). See "Before you start" item 1.
+- VM public IP: `<VM_PUBLIC_IP>`. Look it up with
+  `az vm show -d -g rg-career-platform -n vm-career-platform --query publicIps -o tsv`.
+  This public repo uses the placeholders `<VM_PUBLIC_IP>` and `<LAPTOP_IP>`
+  (the laptop's public IP) instead of real addresses.
 - SSH user: `azureuser`. SSH key: `~/.ssh/isba4775_azure`.
-- SSH command: `ssh -i ~/.ssh/isba4775_azure azureuser@20.25.246.180`
+- SSH command: `ssh -i ~/.ssh/isba4775_azure azureuser@<VM_PUBLIC_IP>`
 - App directory on the VM: `/home/azureuser/career-platform`.
 - Database on the VM: `/home/azureuser/career-platform/data/career_platform.db`. `DATABASE_URL` is `file:/home/azureuser/career-platform/data/career_platform.db`, the same path with `file:` in front. The **Data** step copies to exactly this path.
 - The real database comes from the laptop. Never run `pnpm db:migrate`, `drizzle-kit`, a seed script or any other schema or data setup on the VM. (This project uses Drizzle, not Alembic.)
@@ -34,10 +37,11 @@ as this plan's sections in the same order.
 The table you gave me doesn't fully match the repository. Each item below
 says how this plan handles the mismatch. Settle them before running anything.
 
-1. **The VM's public IP is `20.25.246.180`, not `<LAPTOP_IP>`.**
-   `<LAPTOP_IP>` is this laptop's own public IP, as reported by ipify and
-   ifconfig.me. Azure reports the VM at `20.25.246.180`, and an SSH test to that
-   address succeeded on 2026-10-01. Every step below uses `20.25.246.180`.
+1. **The VM's public IP is not the laptop's public IP.** The address first
+   given for the VM was the laptop's own public IP, as reported by ipify and
+   ifconfig.me. Azure reports the VM's address separately (see Global
+   Constraints), and an SSH test to it succeeded on 2026-10-01. Every step
+   below uses `<VM_PUBLIC_IP>`.
 2. **The app is Next.js, so nothing for uvicorn to run.** uvicorn serves Python
    ASGI apps, and this repo has no Python app; `pyproject.toml` has no
    dependencies. The **Python** section still installs uv and runs `uv sync` as
@@ -81,15 +85,15 @@ repeat them.
   - **Where:** laptop
   - **Run:** (done) `az vm show -d -g rg-career-platform -n vm-career-platform --query "{power:powerState, ip:publicIps, size:hardwareProfile.vmSize}" -o table`
   - **Why:** Every later step connects to this VM, and it must be running.
-  - **Check:** Returned `VM running`, `20.25.246.180`, `Standard_B2ats_v2`. If a later step can't connect, run the command again; if the VM is stopped, start it in the portal (VM → **Start**).
+  - **Check:** Returned `VM running`, `<VM_PUBLIC_IP>`, `Standard_B2ats_v2`. If a later step can't connect, run the command again; if the VM is stopped, start it in the portal (VM → **Start**).
   - **Undo:** Nothing to undo; this step only read the VM's state. The VM was created outside this plan, so this plan never deletes it.
 
 - [x] **Step 2: SSH to the VM works**
   - **Where:** laptop
-  - **Run:** (done) `ssh -i ~/.ssh/isba4775_azure -o BatchMode=yes azureuser@20.25.246.180 'echo connected'`
+  - **Run:** (done) `ssh -i ~/.ssh/isba4775_azure -o BatchMode=yes azureuser@<VM_PUBLIC_IP> 'echo connected'`
   - **Why:** Every VM step runs over this connection.
   - **Check:** Printed `connected`.
-  - **Undo:** The test only added the VM's host key to the laptop's `~/.ssh/known_hosts`. To remove it: `ssh-keygen -R 20.25.246.180`.
+  - **Undo:** The test only added the VM's host key to the laptop's `~/.ssh/known_hosts`. To remove it: `ssh-keygen -R <VM_PUBLIC_IP>`.
 
 ## Packages
 
@@ -97,7 +101,7 @@ repeat them.
   - **Where:** laptop, then VM
   - **Run:**
     ```bash
-    ssh -i ~/.ssh/isba4775_azure azureuser@20.25.246.180
+    ssh -i ~/.ssh/isba4775_azure azureuser@<VM_PUBLIC_IP>
     # then, on the VM:
     lsb_release -ds; uname -m; free -h; df -h ~
     ```
@@ -272,7 +276,7 @@ repeat them.
     ls data/career_platform.db-* 2>/dev/null   # should print nothing
     shasum -a 256 data/career_platform.db
     scp -i ~/.ssh/isba4775_azure data/career_platform.db \
-      azureuser@20.25.246.180:/home/azureuser/career-platform/data/career_platform.db
+      azureuser@<VM_PUBLIC_IP>:/home/azureuser/career-platform/data/career_platform.db
     ```
   - **Why:** Moves your data to the VM. The first line makes sure no `-wal` or `-journal` file is holding changes that haven't been written into the `.db` yet. If one exists, close anything using the database and check again. The service isn't running yet on a first migration. On later re-copies, run `sudo systemctl stop career-platform` on the VM first. The destination `/home/azureuser/career-platform/data/career_platform.db` is `DATABASE_URL` with `file:` removed. Confirm with `grep ^DATABASE_URL= ~/career-platform/.env | sed 's/^DATABASE_URL=file://'` on the VM, which must print the same path.
   - **Check:** On the VM:
@@ -369,7 +373,7 @@ start" item 2).
   - **Where:** laptop
   - **Run:**
     ```bash
-    ssh -i ~/.ssh/isba4775_azure -N -L 3000:127.0.0.1:3000 azureuser@20.25.246.180
+    ssh -i ~/.ssh/isba4775_azure -N -L 3000:127.0.0.1:3000 azureuser@<VM_PUBLIC_IP>
     ```
     Leave it running and open http://localhost:3000 in a browser.
   - **Why:** Lets you see the site without opening ports 80 or 443 in the NSG.
