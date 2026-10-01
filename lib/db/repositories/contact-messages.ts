@@ -1,9 +1,10 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   contactMessages,
   type ContactMessage,
   type ContactMessageStatus,
+  type ContactNotificationStatus,
   type NewContactMessage,
 } from "@/lib/db/schema";
 
@@ -30,4 +31,18 @@ export async function transitionContactMessageStatus(
   }
 
   return message;
+}
+
+export async function setContactNotificationStatus(
+  id: string,
+  notificationStatus: ContactNotificationStatus,
+) {
+  await db
+    .update(contactMessages)
+    .set({ notificationStatus, updatedAt: new Date() })
+    .where(eq(contactMessages.id, id));
+}
+
+export async function listContactMessages(): Promise<ContactMessage[]> {
+  return db.select().from(contactMessages).orderBy(desc(contactMessages.submittedAt));
 }

@@ -7,6 +7,7 @@ import {
   listSkillRows,
   listSocialLinkRows,
 } from "@/lib/db/repositories/content";
+import { listContactMessages } from "@/lib/db/repositories/contact-messages";
 import { getCurrentPublishedResume } from "@/lib/db/repositories/public-content";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ function summarize(rows: { publicationState: string }[]) {
 }
 
 export default async function AdminOverviewPage() {
-  const [profile, experience, education, skills, links, projects, resume] = await Promise.all([
+  const [profile, experience, education, skills, links, projects, resume, messages] = await Promise.all([
     getProfileRow(),
     listExperienceRows(),
     listEducationRows(),
@@ -25,6 +26,7 @@ export default async function AdminOverviewPage() {
     listSocialLinkRows(),
     listProjectRows(),
     getCurrentPublishedResume(),
+    listContactMessages(),
   ]);
 
   const cards = [
@@ -35,6 +37,7 @@ export default async function AdminOverviewPage() {
     { href: "/admin/projects", title: "Projects", text: summarize(projects) },
     { href: "/admin/links", title: "Links", text: summarize(links) },
     { href: "/admin/resume", title: "Resume PDF", text: resume ? `Current: ${resume.filename}` : "No resume uploaded" },
+    { href: "/admin/messages", title: "Messages", text: `${messages.filter((m) => m.status === "unread").length} unread` },
   ];
 
   return (

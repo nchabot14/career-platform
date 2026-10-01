@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContactForm } from "@/components/public/contact-form";
 import { ContactLinks } from "@/components/public/contact-links";
 import { EducationList } from "@/components/public/education-list";
 import { ExperienceTimeline } from "@/components/public/experience-timeline";
@@ -91,6 +92,10 @@ export default async function HomePage() {
           <EducationList items={page.education} />
         </Section>
       ) : null}
+
+      <Section id="contact" title="Contact">
+        <ContactForm />
+      </Section>
     </>
   );
 }
