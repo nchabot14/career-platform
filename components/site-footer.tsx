@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { siteOwner } from "@/lib/site-owner";
 
 const emptySubscribe = () => () => {};
 
@@ -20,7 +21,7 @@ export function SiteFooter({ initialYear }: SiteFooterProps) {
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-6 text-sm text-slate-600 sm:px-10">
         <p>Building recruiter-ready software experiences.</p>
         <p>
-          &copy; <time dateTime={String(currentYear)}>{currentYear}</time> Career Platform
+          &copy; <time dateTime={String(currentYear)}>{currentYear}</time>{` ${siteOwner.name}`}
         </p>
       </div>
     </footer>

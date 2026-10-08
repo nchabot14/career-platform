@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@/components/analytics";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { siteOwner } from "@/lib/site-owner";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -18,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: "Career Platform",
+  title: siteOwner.name,
   description: "Resume, projects, and contact details.",
 };
 

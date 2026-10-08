@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { PublicProfilePage } from "@/lib/services/public-profile";
 
@@ -92,4 +92,43 @@ it("renders a placeholder h1 when no profile is published", async () => {
   render(await HomePage());
 
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/coming soon/i);
+});
+
+it("links each published section from the section menu", async () => {
+  render(await HomePage());
+
+  const menu = screen.getByRole("navigation", { name: /resume sections/i });
+  const links = within(menu).getAllByRole("link");
+  expect(links.map((link) => link.getAttribute("href"))).toEqual([
+    "#experience", "#projects", "#skills", "#education", "#contact",
+  ]);
+  for (const link of links) {
+    const id = link.getAttribute("href")!.slice(1);
+    expect(document.getElementById(id)).toHaveAccessibleName(link.textContent!);
+  }
+});
+
+it("leaves unpublished sections out of the section menu", async () => {
+  getPublicProfilePageMock.mockResolvedValue({ ...page, projects: [], skills: [] });
+
+  render(await HomePage());
+
+  const menu = screen.getByRole("navigation", { name: /resume sections/i });
+  expect(within(menu).queryByRole("link", { name: "Projects" })).not.toBeInTheDocument();
+  expect(within(menu).queryByRole("link", { name: "Skills" })).not.toBeInTheDocument();
+});
+
+it("lists direct email and phone contact details beside the form", async () => {
+  render(await HomePage());
+
+  const contact = screen.getByRole("region", { name: "Contact" });
+  expect(within(contact).getByRole("link", { name: "nchabot14@gmail.com" })).toHaveAttribute(
+    "href",
+    "mailto:nchabot14@gmail.com",
+  );
+  expect(within(contact).getByRole("link", { name: "626-695-8932" })).toHaveAttribute(
+    "href",
+    "tel:+16266958932",
+  );
+  expect(within(contact).getByRole("button", { name: /send message/i })).toBeVisible();
 });

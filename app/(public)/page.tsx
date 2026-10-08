@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { ContactDetails } from "@/components/public/contact-details";
 import { ContactForm } from "@/components/public/contact-form";
 import { ContactLinks } from "@/components/public/contact-links";
 import { EducationList } from "@/components/public/education-list";
 import { ExperienceTimeline } from "@/components/public/experience-timeline";
 import { ProjectCard } from "@/components/public/project-card";
 import { Section } from "@/components/public/section";
+import { SectionNav } from "@/components/public/section-nav";
 import { SkillsList } from "@/components/public/skills-list";
 import { getPublicProfilePage } from "@/lib/services/public-profile";
 
@@ -47,55 +49,74 @@ export default async function HomePage() {
     );
   }
 
+  const navItems = [
+    { id: "experience", label: "Experience", show: page.experience.length > 0 },
+    { id: "projects", label: "Projects", show: page.projects.length > 0 },
+    { id: "skills", label: "Skills", show: page.skills.length > 0 },
+    { id: "education", label: "Education", show: page.education.length > 0 },
+    { id: "contact", label: "Contact", show: true },
+  ]
+    .filter((item) => item.show)
+    .map(({ id, label }) => ({ id, label }));
+
   return (
-    <>
-      <header className="space-y-5">
-        <h1 className="text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-          {profile.name}
-        </h1>
-        <p className="text-xl font-medium text-slate-800">{profile.headline}</p>
-        {profile.location || profile.availability ? (
-          <p className="text-sm text-slate-600">
-            {[profile.location, profile.availability].filter(Boolean).join(" · ")}
-          </p>
+    <div className="lg:grid lg:grid-cols-[9rem_minmax(0,1fr)] lg:gap-x-12">
+      <SectionNav items={navItems} />
+      <div className="flex flex-col gap-14">
+        <header className="space-y-5">
+          <h1 className="text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+            {profile.name}
+          </h1>
+          <p className="text-xl font-medium text-slate-800">{profile.headline}</p>
+          {profile.location || profile.availability ? (
+            <p className="text-sm text-slate-600">
+              {[profile.location, profile.availability].filter(Boolean).join(" · ")}
+            </p>
+          ) : null}
+          <p className="max-w-2xl text-lg leading-8 text-slate-700">{profile.summary}</p>
+          <ContactLinks links={page.socialLinks} resumeAvailable={page.resume !== null} />
+        </header>
+
+        {page.experience.length > 0 ? (
+          <Section id="experience" title="Experience">
+            <ExperienceTimeline items={page.experience} />
+          </Section>
         ) : null}
-        <p className="max-w-2xl text-lg leading-8 text-slate-700">{profile.summary}</p>
-        <ContactLinks links={page.socialLinks} resumeAvailable={page.resume !== null} />
-      </header>
 
-      {page.experience.length > 0 ? (
-        <Section id="experience" title="Experience">
-          <ExperienceTimeline items={page.experience} />
+        {page.projects.length > 0 ? (
+          <Section id="projects" title="Projects">
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {page.projects.map((project) => (
+                <li key={project.id}>
+                  <ProjectCard project={project} />
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ) : null}
+
+        {page.skills.length > 0 ? (
+          <Section id="skills" title="Skills">
+            <SkillsList items={page.skills} />
+          </Section>
+        ) : null}
+
+        {page.education.length > 0 ? (
+          <Section id="education" title="Education">
+            <EducationList items={page.education} />
+          </Section>
+        ) : null}
+
+        <Section id="contact" title="Contact">
+          <div className="space-y-10">
+            <ContactDetails />
+            <div className="space-y-4">
+              <h3 className="text-base font-semibold text-slate-950">Or send a message</h3>
+              <ContactForm />
+            </div>
+          </div>
         </Section>
-      ) : null}
-
-      {page.projects.length > 0 ? (
-        <Section id="projects" title="Projects">
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {page.projects.map((project) => (
-              <li key={project.id}>
-                <ProjectCard project={project} />
-              </li>
-            ))}
-          </ul>
-        </Section>
-      ) : null}
-
-      {page.skills.length > 0 ? (
-        <Section id="skills" title="Skills">
-          <SkillsList items={page.skills} />
-        </Section>
-      ) : null}
-
-      {page.education.length > 0 ? (
-        <Section id="education" title="Education">
-          <EducationList items={page.education} />
-        </Section>
-      ) : null}
-
-      <Section id="contact" title="Contact">
-        <ContactForm />
-      </Section>
-    </>
+      </div>
+    </div>
   );
 }

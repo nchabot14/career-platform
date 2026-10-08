@@ -21,6 +21,13 @@ it("keeps the header navigation limited to implemented routes", () => {
   expect(screen.queryByRole("link", { name: /^resume$/i })).not.toBeInTheDocument();
 });
 
+it("brands the header with the owner's name", () => {
+  render(<SiteHeader />);
+
+  expect(screen.getByRole("link", { name: "Nicholas Chabot" })).toHaveAttribute("href", "/");
+  expect(screen.queryByText(/career platform/i)).not.toBeInTheDocument();
+});
+
 it("hydrates the footer year without a recoverable mismatch", async () => {
   vi.useFakeTimers();
   // Local-time dates: getFullYear() reads the local zone, so UTC instants
@@ -47,8 +54,8 @@ it("hydrates the footer year without a recoverable mismatch", async () => {
     });
   });
 
-  expect(serverHtml).toContain("© <time dateTime=\"2025\">2025</time> Career Platform");
-  expect(container).toHaveTextContent("© 2026 Career Platform");
+  expect(serverHtml).toContain("© <time dateTime=\"2025\">2025</time> Nicholas Chabot");
+  expect(container).toHaveTextContent("© 2026 Nicholas Chabot");
   expect(recoverableErrors).toHaveLength(0);
 
   await act(async () => {

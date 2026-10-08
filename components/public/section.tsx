@@ -6,7 +6,7 @@ type SectionProps = Readonly<{
 
 export function Section({ id, title, children }: SectionProps) {
   return (
-    <section aria-labelledby={`${id}-heading`} className="space-y-5">
+    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-16 space-y-5 lg:scroll-mt-10">
       <h2
         id={`${id}-heading`}
         className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700"

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { siteOwner } from "@/lib/site-owner";
 
 export function SiteHeader() {
   return (
@@ -11,7 +12,7 @@ export function SiteHeader() {
       </a>
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 sm:px-10">
         <Link href="/" className="text-base font-semibold tracking-tight text-slate-950">
-          Career Platform
+          {siteOwner.name}
         </Link>
         <nav aria-label="Primary" className="text-sm text-slate-600">
           <ul className="flex items-center gap-6">
