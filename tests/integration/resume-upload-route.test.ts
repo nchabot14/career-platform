@@ -1,28 +1,15 @@
 // @vitest-environment node
 
 import "@/tests/integration/test-database";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import { db } from "@/lib/db/client";
 import { resumeDocuments } from "@/lib/db/schema";
 import { getCurrentPublishedResume } from "@/lib/db/repositories/public-content";
+import { readStoredFile } from "@/lib/storage/files";
 import { replaceCurrentResume } from "@/lib/storage/resumes";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-
-let root: string;
-
-beforeAll(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), "resume-int-"));
-  process.env.FILE_STORAGE_DIR = root;
-});
-
-afterAll(async () => {
-  await fs.rm(root, { recursive: true, force: true });
-});
 
 const pdf = (label: string) => {
   const bytes = new TextEncoder().encode(`%PDF-1.7\n% ${label}\n%%EOF\n`);
@@ -47,6 +34,6 @@ it("replacing the resume leaves exactly one current, published record", async ()
     .where(eq(resumeDocuments.id, first.id));
   expect(previous.isCurrent).toBe(false);
 
-  const stored = await fs.readFile(path.join(root, second.storageKey), "utf8");
-  expect(stored).toContain("second");
+  const stored = await readStoredFile(second.storageKey);
+  expect(new TextDecoder().decode(stored!)).toContain("second");
 });

@@ -2,6 +2,7 @@ import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   date as pgDate,
   integer,
   jsonb,
@@ -246,6 +247,20 @@ export const applicationActivities = pgTable("application_activity", {
   note: text("note"),
   priorStatus: applicationStatus("prior_status"),
   resultingStatus: applicationStatus("resulting_status"),
+  ...timestamps,
+});
+
+const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
+  dataType: () => "bytea",
+  toDriver: (value) => Buffer.from(value),
+  fromDriver: (value) => new Uint8Array(value),
+});
+
+// Uploaded file contents, addressed by the storage keys that
+// resume_document and application_document already record.
+export const storedFiles = pgTable("stored_file", {
+  key: text("key").primaryKey(),
+  bytes: bytea("bytes").notNull(),
   ...timestamps,
 });
 

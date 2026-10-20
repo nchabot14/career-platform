@@ -6,6 +6,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "@/lib/db/client";
 
 const tables = [
+  "stored_file",
   "application_activity",
   "application_document",
   "application_contact",

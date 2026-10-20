@@ -1,56 +1,40 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { storedFiles } from "@/lib/db/schema";
 
-// Uploaded files live on the server's disk next to the SQLite database.
-// Keys are server-generated, slash-separated relative paths such as
-// "resumes/<uuid>.pdf"; anything that could escape the root is rejected.
+// Uploaded files live in Postgres, so a deploy never loses them and one
+// database backup covers everything. Keys are server-generated,
+// slash-separated paths such as "resumes/<uuid>.pdf".
 const safeKeyPattern = /^[A-Za-z0-9_-][A-Za-z0-9._-]*(?:\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$/;
 
-export function getStorageRoot() {
-  return path.resolve(/* turbopackIgnore: true */ process.env.FILE_STORAGE_DIR || "data/files");
-}
-
-function resolveKey(key: string) {
-  const root = getStorageRoot();
-  const resolved = path.resolve(/* turbopackIgnore: true */ root, key);
-
-  if (!safeKeyPattern.test(key) || !resolved.startsWith(root + path.sep)) {
+function assertSafeKey(key: string) {
+  if (!safeKeyPattern.test(key)) {
     throw new Error(`Invalid storage key: ${JSON.stringify(key)}`);
   }
-
-  return resolved;
-}
-
-function isMissingFile(error: unknown) {
-  return (error as NodeJS.ErrnoException)?.code === "ENOENT";
 }
 
 export async function writeStoredFile(key: string, bytes: Uint8Array) {
-  const target = resolveKey(key);
-  const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
+  assertSafeKey(key);
+  const now = new Date();
 
-  await fs.mkdir(path.dirname(target), { recursive: true });
-  await fs.writeFile(temporary, bytes, { mode: 0o600 });
-  await fs.rename(temporary, target);
+  await db
+    .insert(storedFiles)
+    .values({ key, bytes, createdAt: now, updatedAt: now })
+    .onConflictDoUpdate({ target: storedFiles.key, set: { bytes, updatedAt: now } });
 }
 
 export async function readStoredFile(key: string): Promise<Uint8Array | null> {
-  const target = resolveKey(key);
+  assertSafeKey(key);
+  const [row] = await db
+    .select({ bytes: storedFiles.bytes })
+    .from(storedFiles)
+    .where(eq(storedFiles.key, key))
+    .limit(1);
 
-  try {
-    return new Uint8Array(await fs.readFile(target));
-  } catch (error) {
-    if (isMissingFile(error)) return null;
-    throw error;
-  }
+  return row?.bytes ?? null;
 }
 
 export async function deleteStoredFile(key: string) {
-  const target = resolveKey(key);
-
-  try {
-    await fs.unlink(target);
-  } catch (error) {
-    if (!isMissingFile(error)) throw error;
-  }
+  assertSafeKey(key);
+  await db.delete(storedFiles).where(eq(storedFiles.key, key));
 }
