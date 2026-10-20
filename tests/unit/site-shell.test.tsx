@@ -28,6 +28,12 @@ it("brands the header with the owner's name", () => {
   expect(screen.queryByText(/career platform/i)).not.toBeInTheDocument();
 });
 
+it("links the privacy page from the footer", () => {
+  render(<SiteFooter initialYear={2026} />);
+
+  expect(screen.getByRole("link", { name: /^privacy$/i })).toHaveAttribute("href", "/privacy");
+});
+
 it("hydrates the footer year without a recoverable mismatch", async () => {
   vi.useFakeTimers();
   // Local-time dates: getFullYear() reads the local zone, so UTC instants
