@@ -5,6 +5,7 @@ const pages = [
   { name: "home page and contact form", path: "/" },
   { name: "project page", path: "/projects/engine-notes" },
   { name: "login page", path: "/login" },
+  { name: "privacy page", path: "/privacy" },
 ];
 
 for (const { name, path } of pages) {

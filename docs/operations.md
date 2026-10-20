@@ -37,6 +37,7 @@ after changing them.
 | `RATE_LIMIT_SECRET` | Recommended | Random string used to hash visitor IPs for rate limiting. Generate with `openssl rand -hex 32`. |
 | `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | No | Umami website ID. Analytics load only when both Umami values are set. |
 | `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | No | Umami script URL, e.g. `https://cloud.umami.is/script.js`. |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | No | Google Analytics 4 measurement ID, e.g. `G-JTFJE8DS7S`. When set, public pages load the Google tag under Consent Mode and show a cookie consent banner. |
 
 ## Supabase sign-in setup
 
