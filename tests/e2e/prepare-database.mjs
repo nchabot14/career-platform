@@ -1,36 +1,33 @@
-// Rebuilds the throwaway end-to-end database and file store with fixed
-// fixtures before the Playwright web server starts. Never point this at a
-// real database: it deletes the target first.
-import fs from "node:fs/promises";
-import path from "node:path";
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
-import { migrate } from "drizzle-orm/libsql/migrator";
+// Rebuilds the throwaway end-to-end database with fixed fixtures before the
+// Playwright web server starts. Never point this at a real database: it
+// drops every table first.
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 
 const databaseUrl = process.env.DATABASE_URL ?? "";
-const filesDir = process.env.FILE_STORAGE_DIR ?? "";
 
-if (!databaseUrl.includes("e2e") || !filesDir.includes("e2e")) {
-  throw new Error("Refusing to prepare a database or file store without 'e2e' in its path.");
+if (!new URL(databaseUrl).pathname.includes("e2e")) {
+  throw new Error("Refusing to prepare a database without 'e2e' in its name.");
 }
 
-const databasePath = databaseUrl.replace(/^file:/, "");
-await fs.rm(databasePath, { force: true });
-await fs.rm(filesDir, { recursive: true, force: true });
+// Migrations run on their own connection: drizzle() swaps a client's date
+// and JSON serializers for pass-through ones, which breaks the raw inserts
+// below if they share it.
+const migrationClient = postgres(databaseUrl, { max: 1, onnotice: () => {} });
+await migrationClient`DROP SCHEMA IF EXISTS drizzle CASCADE`;
+await migrationClient`DROP SCHEMA IF EXISTS public CASCADE`;
+await migrationClient`CREATE SCHEMA public`;
+await migrate(drizzle(migrationClient), { migrationsFolder: "drizzle" });
+await migrationClient.end();
 
-const client = createClient({ url: databaseUrl });
-await migrate(drizzle(client), { migrationsFolder: "drizzle" });
+const sql = postgres(databaseUrl, { max: 1, onnotice: () => {} });
 
-const now = Date.now();
-const row = (values) => ({ id: crypto.randomUUID(), created_at: now, updated_at: now, ...values });
+const now = new Date();
 
 async function insert(table, values) {
-  const record = row(values);
-  const columns = Object.keys(record);
-  await client.execute({
-    sql: `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
-    args: Object.values(record),
-  });
+  const record = { id: crypto.randomUUID(), created_at: now, updated_at: now, ...values };
+  await sql`INSERT INTO ${sql(table)} ${sql(record)}`;
 }
 
 await insert("profile", {
@@ -48,7 +45,7 @@ await insert("experience", {
   start_date: "1842-01-01",
   end_date: null,
   description: "Wrote the first published algorithm.",
-  highlights: JSON.stringify(["Note G"]),
+  highlights: sql.json(["Note G"]),
   sort_order: 0,
   publication_state: "published",
 });
@@ -58,8 +55,8 @@ await insert("project", {
   summary: "Annotated translation.",
   body: "Paragraph one.\n\n- First point\n- Second point",
   role: "Author",
-  technologies: JSON.stringify(["Punch cards"]),
-  links: JSON.stringify([]),
+  technologies: sql.json(["Punch cards"]),
+  links: sql.json([]),
   sort_order: 0,
   publication_state: "published",
 });
@@ -68,23 +65,22 @@ await insert("project", {
   slug: "secret-draft",
   summary: "Not ready.",
   body: "Hidden.",
-  technologies: "[]",
-  links: "[]",
+  technologies: sql.json([]),
+  links: sql.json([]),
   sort_order: 1,
   publication_state: "draft",
 });
 
 const pdf = new TextEncoder().encode("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n");
-await fs.mkdir(path.join(filesDir, "resumes"), { recursive: true });
-await fs.writeFile(path.join(filesDir, "resumes", "e2e.pdf"), pdf);
+await sql`INSERT INTO stored_file ${sql({ key: "resumes/e2e.pdf", bytes: Buffer.from(pdf), created_at: now, updated_at: now })}`;
 await insert("resume_document", {
   storage_key: "resumes/e2e.pdf",
   filename: "ada.pdf",
   mime_type: "application/pdf",
   size: pdf.byteLength,
-  is_current: 1,
+  is_current: true,
   publication_state: "published",
 });
 
-client.close();
+await sql.end();
 console.log("e2e database ready");
