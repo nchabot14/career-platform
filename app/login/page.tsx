@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth/server";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Owner login | Career Platform",
@@ -76,15 +76,12 @@ async function requestMagicLink(formData: FormData) {
     redirect("/login?error=unauthorized");
   }
 
-  const headerStore = await headers();
-  const origin =
-    headerStore.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const supabase = await createServerSupabaseClient();
 
   const { error } = await supabase.auth.signInWithOtp({
     email: submittedEmail,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?next=/admin`,
+      emailRedirectTo: absoluteUrl("/auth/callback?next=/admin"),
     },
   });
 
