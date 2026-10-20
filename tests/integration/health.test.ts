@@ -2,7 +2,7 @@
 
 import "@/tests/integration/test-database";
 import { afterEach, expect, it, vi } from "vitest";
-import { databaseClient } from "@/lib/db/client";
+import { db } from "@/lib/db/client";
 import { GET } from "@/app/api/health/route";
 
 afterEach(() => {
@@ -18,7 +18,9 @@ it("returns 200 ok when the database answers", async () => {
 });
 
 it("returns 503 degraded without error details when the database fails", async () => {
-  vi.spyOn(databaseClient, "execute").mockRejectedValue(new Error("SQLITE_CANTOPEN: /secret/path.db"));
+  vi.spyOn(db, "execute").mockRejectedValue(
+    new Error("connect ECONNREFUSED postgres://app:secret-password@db.internal:5432/railway"),
+  );
   vi.spyOn(console, "error").mockImplementation(() => {});
 
   const response = await GET();

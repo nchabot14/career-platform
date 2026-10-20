@@ -1,7 +1,7 @@
 # career-platform
 
 A recruiter-first resume site with a private owner dashboard, built with
-Next.js App Router, TypeScript, Tailwind CSS, Drizzle ORM, and SQLite.
+Next.js App Router, TypeScript, Tailwind CSS, Drizzle ORM, and PostgreSQL.
 
 - **Public site:** profile, experience, projects (each with its own page),
   skills, education, links, a Resume PDF download, and a contact form.
@@ -34,14 +34,16 @@ Next.js App Router, TypeScript, Tailwind CSS, Drizzle ORM, and SQLite.
    and `OWNER_EMAIL`; contact-form email alerts need the Resend values. See
    [docs/operations.md](docs/operations.md#environment-variables).
 
-3. Create the local SQLite database:
+3. Start the local PostgreSQL database and apply the migrations:
 
    ```bash
+   docker compose up -d --wait
    pnpm db:migrate
    ```
 
-   The database lives at `data/career_platform.db` unless `DATABASE_URL`
-   points elsewhere, and uploads go to `data/files/`. Both are git-ignored.
+   Docker creates `career_platform` plus the `career_platform_test` and
+   `career_platform_e2e` databases the tests use. Stop it with
+   `docker compose down`; add `-v` to delete its data.
 
 4. Start the development server:
 
@@ -59,11 +61,11 @@ Next.js App Router, TypeScript, Tailwind CSS, Drizzle ORM, and SQLite.
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm test`: unit tests
-- `pnpm test:integration`: repository and route tests against
-  `data/career_platform.test.db`
+- `pnpm test:integration`: repository and route tests against the
+  `career_platform_test` database
 - `pnpm test:e2e`: Playwright browser and accessibility tests. They build the
-  app and run it on port 3100 against a throwaway
-  `data/career_platform.e2e.db`. Run `pnpm exec playwright install chromium`
+  app and run it on port 3100 against the throwaway
+  `career_platform_e2e` database. Run `pnpm exec playwright install chromium`
   once first.
 
 ## Operations

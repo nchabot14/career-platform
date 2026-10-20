@@ -1,11 +1,16 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import {
+  boolean,
+  date as pgDate,
   integer,
-  sqliteTable,
+  jsonb,
+  pgEnum,
+  pgTable,
   text,
+  timestamp as pgTimestamp,
   uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+} from "drizzle-orm/pg-core";
 
 const publicationStateValues = ["draft", "published"] as const;
 const contactMessageStatusValues = ["unread", "read", "archived"] as const;
@@ -25,31 +30,31 @@ export type ApplicationStatus = (typeof applicationStatusValues)[number];
 export type ContactNotificationStatus =
   (typeof contactNotificationStatusValues)[number];
 
-// SQLite has no enum type, so these are text columns whose allowed values
-// are enforced by TypeScript rather than by the database.
-const publicationState = (name: string) =>
-  text(name, { enum: publicationStateValues });
-const contactMessageStatus = (name: string) =>
-  text(name, { enum: contactMessageStatusValues });
-const applicationStatus = (name: string) =>
-  text(name, { enum: applicationStatusValues });
+export const publicationStateEnum = pgEnum("publication_state", publicationStateValues);
+export const contactMessageStatusEnum = pgEnum("contact_message_status", contactMessageStatusValues);
+export const applicationStatusEnum = pgEnum("application_status", applicationStatusValues);
 
+const publicationState = (name: string) => publicationStateEnum(name);
+const contactMessageStatus = (name: string) => contactMessageStatusEnum(name);
+const applicationStatus = (name: string) => applicationStatusEnum(name);
+
+// Ids stay text holding UUIDs, as in SQLite: a malformed id in a URL then
+// simply matches nothing instead of failing a uuid cast.
 const id = () =>
   text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID());
 
-// Stored as Unix epoch milliseconds; Drizzle maps them to Date objects.
-const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
+const timestamp = (name: string) => pgTimestamp(name, { withTimezone: true, mode: "date" });
 
-// Stored as ISO YYYY-MM-DD strings, matching the former PostgreSQL date mode.
-const date = (name: string) => text(name);
+// ISO YYYY-MM-DD strings, as before.
+const date = (name: string) => pgDate(name, { mode: "string" });
 
 const jsonArray = <T>(name: string) =>
-  text(name, { mode: "json" })
+  jsonb(name)
     .$type<T[]>()
     .notNull()
-    .default(sql`'[]'`);
+    .default(sql`'[]'::jsonb`);
 
 const timestamps = {
   createdAt: timestamp("created_at")
@@ -60,7 +65,7 @@ const timestamps = {
     .$defaultFn(() => new Date()),
 };
 
-export const profiles = sqliteTable("profile", {
+export const profiles = pgTable("profile", {
   id: id(),
   name: text("name").notNull(),
   headline: text("headline").notNull(),
@@ -74,7 +79,7 @@ export const profiles = sqliteTable("profile", {
   ...timestamps,
 });
 
-export const experiences = sqliteTable("experience", {
+export const experiences = pgTable("experience", {
   id: id(),
   employer: text("employer").notNull(),
   title: text("title").notNull(),
@@ -89,7 +94,7 @@ export const experiences = sqliteTable("experience", {
   ...timestamps,
 });
 
-export const education = sqliteTable("education", {
+export const education = pgTable("education", {
   id: id(),
   institution: text("institution").notNull(),
   credential: text("credential").notNull(),
@@ -103,7 +108,7 @@ export const education = sqliteTable("education", {
   ...timestamps,
 });
 
-export const skills = sqliteTable("skill", {
+export const skills = pgTable("skill", {
   id: id(),
   name: text("name").notNull(),
   category: text("category").notNull(),
@@ -116,7 +121,7 @@ export const skills = sqliteTable("skill", {
   ...timestamps,
 });
 
-export const projects = sqliteTable(
+export const projects = pgTable(
   "project",
   {
     id: id(),
@@ -137,7 +142,7 @@ export const projects = sqliteTable(
   (table) => [uniqueIndex("project_slug_unique").on(table.slug)],
 );
 
-export const resumeDocuments = sqliteTable(
+export const resumeDocuments = pgTable(
   "resume_document",
   {
     id: id(),
@@ -145,7 +150,7 @@ export const resumeDocuments = sqliteTable(
     filename: text("filename").notNull(),
     mimeType: text("mime_type").notNull(),
     size: integer("size").notNull(),
-    isCurrent: integer("is_current", { mode: "boolean" }).notNull().default(false),
+    isCurrent: boolean("is_current").notNull().default(false),
     publicationState: publicationState("publication_state")
       .notNull()
       .default("draft"),
@@ -154,11 +159,11 @@ export const resumeDocuments = sqliteTable(
   (table) => [
     uniqueIndex("resume_document_current_unique")
       .on(table.isCurrent)
-      .where(sql`${table.isCurrent} = 1`),
+      .where(sql`${table.isCurrent} = true`),
   ],
 );
 
-export const socialLinks = sqliteTable("social_link", {
+export const socialLinks = pgTable("social_link", {
   id: id(),
   label: text("label").notNull(),
   url: text("url").notNull(),
@@ -170,7 +175,7 @@ export const socialLinks = sqliteTable("social_link", {
   ...timestamps,
 });
 
-export const contactMessages = sqliteTable("contact_message", {
+export const contactMessages = pgTable("contact_message", {
   id: id(),
   senderName: text("sender_name").notNull(),
   senderEmail: text("sender_email").notNull(),
@@ -187,7 +192,7 @@ export const contactMessages = sqliteTable("contact_message", {
   ...timestamps,
 });
 
-export const jobApplications = sqliteTable("job_application", {
+export const jobApplications = pgTable("job_application", {
   id: id(),
   company: text("company").notNull(),
   role: text("role").notNull(),
@@ -200,7 +205,7 @@ export const jobApplications = sqliteTable("job_application", {
   ...timestamps,
 });
 
-export const applicationContacts = sqliteTable("application_contact", {
+export const applicationContacts = pgTable("application_contact", {
   id: id(),
   applicationId: text("application_id")
     .notNull()
@@ -214,7 +219,7 @@ export const applicationContacts = sqliteTable("application_contact", {
   ...timestamps,
 });
 
-export const applicationDocuments = sqliteTable("application_document", {
+export const applicationDocuments = pgTable("application_document", {
   id: id(),
   applicationId: text("application_id")
     .notNull()
@@ -227,8 +232,10 @@ export const applicationDocuments = sqliteTable("application_document", {
   ...timestamps,
 });
 
-export const applicationActivities = sqliteTable("application_activity", {
+export const applicationActivities = pgTable("application_activity", {
   id: id(),
+  // Breaks ties between entries recorded in the same millisecond.
+  sequence: integer("sequence").generatedAlwaysAsIdentity(),
   applicationId: text("application_id")
     .notNull()
     .references(() => jobApplications.id, { onDelete: "cascade" }),
