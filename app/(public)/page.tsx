@@ -8,12 +8,28 @@ import { ProjectCard } from "@/components/public/project-card";
 import { Section } from "@/components/public/section";
 import { SectionNav } from "@/components/public/section-nav";
 import { SkillsList } from "@/components/public/skills-list";
-import { getPublicProfilePage } from "@/lib/services/public-profile";
+import { fallbackProfilePage } from "@/lib/fallback-profile";
+import { logServerError } from "@/lib/observability/logger";
+import { getPublicProfilePage, type PublicProfilePage } from "@/lib/services/public-profile";
 
 export const dynamic = "force-dynamic";
 
+// When the database is down, show the fallback profile instead of an error
+// page, and say that projects are unavailable rather than invent any.
+// proxy.ts sets the 503 status for the same failure.
+async function loadPage(): Promise<{ page: PublicProfilePage; databaseAvailable: boolean }> {
+  try {
+    return { page: await getPublicProfilePage(), databaseAvailable: true };
+  } catch (error) {
+    logServerError("public_page_database_failed", error, {});
+    return { page: fallbackProfilePage, databaseAvailable: false };
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const { profile } = await getPublicProfilePage();
+  const {
+    page: { profile },
+  } = await loadPage();
 
   if (!profile) return { alternates: { canonical: "/" } };
 
@@ -33,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const page = await getPublicProfilePage();
+  const { page, databaseAvailable } = await loadPage();
   const { profile } = page;
 
   if (!profile) {
@@ -51,7 +67,7 @@ export default async function HomePage() {
 
   const navItems = [
     { id: "experience", label: "Experience", show: page.experience.length > 0 },
-    { id: "projects", label: "Projects", show: page.projects.length > 0 },
+    { id: "projects", label: "Projects", show: true },
     { id: "skills", label: "Skills", show: page.skills.length > 0 },
     { id: "education", label: "Education", show: page.education.length > 0 },
     { id: "contact", label: "Contact", show: true },
@@ -83,8 +99,12 @@ export default async function HomePage() {
           </Section>
         ) : null}
 
-        {page.projects.length > 0 ? (
-          <Section id="projects" title="Projects">
+        <Section id="projects" title="Projects">
+          {!databaseAvailable ? (
+            <p className="leading-7 text-slate-700">Projects temporarily unavailable.</p>
+          ) : page.projects.length === 0 ? (
+            <p className="leading-7 text-slate-700">No projects published yet.</p>
+          ) : (
             <ul className="grid gap-4 sm:grid-cols-2">
               {page.projects.map((project) => (
                 <li key={project.id}>
@@ -92,8 +112,8 @@ export default async function HomePage() {
                 </li>
               ))}
             </ul>
-          </Section>
-        ) : null}
+          )}
+        </Section>
 
         {page.skills.length > 0 ? (
           <Section id="skills" title="Skills">
