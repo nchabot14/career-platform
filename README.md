@@ -173,18 +173,20 @@ has to be copied back first; see
 
 ## Decisions
 
-Written up on 2026-10-26, from the repository and what happened, except the
-Railway recommendation, which I wrote that day.
+Written up on 2026-10-26 from the repository and what happened, and
+checked by me against my own reasons.
 
-1. **SQLite first, then PostgreSQL.** For the single Azure VM, I chose
-   SQLite: the database is one file next to the app, there's no database
-   server to install, secure or keep running, it's reached locally rather
-   than over the network, and a backup is one `.backup` command. Running
-   PostgreSQL on the VM was the alternative; on a 1 GiB VM it would have
-   competed with the app for memory. The cost is that SQLite can't be shared
-   by separate machines, so moving to Railway, where the app runs in a
-   container with no lasting disk, meant moving to PostgreSQL. (Commit
-   `1405773`, 2026-10-01.)
+1. **SQLite first, then PostgreSQL.** I used SQLite on the Azure VM
+   because the course's Azure guide called for it; I didn't compare engines
+   myself at the time. Looking back, it fit that setup: the database is one
+   file next to the app, there's no database server to install, secure or
+   keep running, it's read locally rather than over the network, and a
+   backup is one `.backup` command. Running PostgreSQL on the VM would have
+   meant another service competing with the app for the VM's 1 GiB of
+   memory. The limit showed up at the next move: a SQLite file lives on one
+   machine's disk, and Railway runs the app in a container with no lasting
+   disk, so moving to Railway meant moving to PostgreSQL. (Commit `1405773`,
+   2026-10-01.)
 2. **Moving from the VM to Railway.** Alternatives: stay on the VM, or
    move to another PaaS. I'd move, because our time is the biggest cost and
    Railway takes over the server, TLS and deploys. The full reasoning is in
