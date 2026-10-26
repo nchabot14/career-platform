@@ -11,7 +11,6 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 
 ## Needs Nick
 
-- [ ] Confirm the SQLite and Zoho decision write-ups match your own reasons (`README.md` Decisions).
 - [ ] Write the reflection (`README.md`).
 - [ ] Optional: stop Railway Postgres briefly to repeat the outage check on the live site.
 - [ ] Remove the Postgres TCP proxy; delete the old Railway projects `caring-comfort` and `thorough-trust`.
