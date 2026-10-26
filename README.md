@@ -217,8 +217,6 @@ As of 2026-10-26:
 
 - **HTTPS at nickchabot.com isn't working** until Railway issues the
   certificate.
-- **GA4 isn't on the live site:** `NEXT_PUBLIC_GA_MEASUREMENT_ID` isn't set
-  on Railway. It was verified only on a local run.
 - **No `/admin` sign-in or contact alerts on Railway:** the Supabase,
   `OWNER_EMAIL` and Resend variables aren't set. Contact messages are still
   saved.

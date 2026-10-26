@@ -7,12 +7,10 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 ## Blocked by Railway
 
 - [ ] HTTPS certificate for `nickchabot.com`: Railway reports a Let's Encrypt rate limit and won't retry, even after the domain was removed and re-added. Next: a Railway Help Station request. Then check the padlock, and record the certificate in `docs/evidence/domain-and-https.md`.
-- [ ] Repeat the live checks at `https://nickchabot.com` once it has a certificate: the LinkedIn change (`docs/evidence/reviewed-change.md`) and GA4.
+- [ ] Repeat the live checks at `https://nickchabot.com` once it has a certificate: the LinkedIn change (`docs/evidence/reviewed-change.md`) and a GA4 page view.
 
 ## Needs Nick
 
-- [ ] Merge PR #12 (homepage 503 and fallback profile), then check the Railway deploy.
-- [ ] Set `NEXT_PUBLIC_GA_MEASUREMENT_ID` on the Railway web service, then check a page view and an outbound click in GA4 Realtime on the live site, and add a dated result and screenshot to `docs/evidence/ex06.md`.
 - [ ] Before-MX message: what happened to the message sent before any mail record existed (bounce? when?). Fill in the line in `docs/evidence/ex06.md`, or mark it as not done.
 - [ ] Real change to the original data: name the record edited on the VM before the copy, or confirm the "Git and GitHub" skill is the change (`docs/railway-migration.md`).
 - [ ] Confirm the SQLite and Zoho decision write-ups match your own reasons (`README.md` Decisions).
@@ -23,6 +21,8 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 
 ## Done
 
+- [x] PR #12 merged and deployed (`b807b73f`, 2026-10-26 18:31 UTC); PR #13 merged
+- [x] GA4 on the live site: page view and outbound click in Realtime, 2026-10-26 (`docs/evidence/ex06.md#live-site-check`)
 - [x] Homepage keeps the profile, shows "Projects temporarily unavailable." and returns 503 when the database fails; recovers on refresh (`docs/evidence/database-outage.md`, PR #12)
 - [x] Empty projects table shows a message; error page hides raw error text
 - [x] Initial database choice explained (`README.md` Decisions)

@@ -75,13 +75,16 @@ aren't filled in with expected results.
 
 ## 7. GA4
 
-- [GA4 in ex06.md](evidence/ex06.md#3-ga4): page views and an outbound
-  click, how browser activity reaches GA4, and why the click matters.
-  Screenshots: [event counts](evidence/ex06-ga4-events.png),
+- [GA4 in ex06.md](evidence/ex06.md#3-ga4): how browser activity reaches
+  GA4, and why the click matters. First check on a local run, 2026-10-20:
+  [event counts](evidence/ex06-ga4-events.png),
   [click details](evidence/ex06-ga4-click-values.png)
 - [Privacy page](https://career-platform-production-0e0b.up.railway.app/privacy)
-- **Pending:** verification on the live site. Captured on a local run;
-  the measurement ID isn't set on Railway yet.
+- [Live site check](evidence/ex06.md#live-site-check), 2026-10-26: page
+  views and an outbound click (LinkedIn) in GA4 Realtime from the deployed
+  site. Screenshots: [events](evidence/ga4-live-events.png),
+  [click](evidence/ga4-live-click.png). Done at the Railway address,
+  since nickchabot.com has no certificate yet.
 
 ## 8. Failures, decisions, reflection, costs and limitations
 

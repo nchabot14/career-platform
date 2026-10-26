@@ -114,7 +114,7 @@ flowchart LR
   B -->|"3 · page_view, click events<br/>consent mode: cookieless until accepted"| GA --> PROP
 ```
 
-The site's server never sends analytics; the visitor's browser talks to Google directly. On Railway, step 1 is missing until the measurement ID is set (see [ex06.md](evidence/ex06.md#check-that-failed)).
+The site's server never sends analytics; the visitor's browser talks to Google directly. On Railway the measurement ID was set on 2026-10-26, and live collection was checked that day ([ex06.md](evidence/ex06.md#live-site-check)).
 
 ## What changes between the hosts
 

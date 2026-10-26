@@ -108,9 +108,10 @@ GitHub" skill below is the change, made on Railway after the copy.*
      [domain-and-https.md](evidence/domain-and-https.md#investigation-railway-certificate-not-issued).
    - Settings: on Railway only `DATABASE_URL` (a reference to the Postgres
      service) and `NEXT_PUBLIC_SITE_URL` are set. The Supabase, Resend,
-     `OWNER_EMAIL`, `RATE_LIMIT_SECRET` and GA4 variables aren't, so `/admin`
-     sign-in, contact alerts and analytics don't work on Railway yet. They
-     didn't work on the VM either.
+     `OWNER_EMAIL` and `RATE_LIMIT_SECRET` variables aren't, so `/admin`
+     sign-in and contact alerts don't work on Railway yet. They didn't work
+     on the VM either. The GA4 measurement ID was added later that day
+     ([ex06.md](evidence/ex06.md#live-site-check)).
 
 ## Problems along the way
 
@@ -228,8 +229,6 @@ As of 2026-10-26, 18:30 UTC:
 
 - **HTTPS at nickchabot.com:** the certificate isn't issued (Railway
   support request next).
-- **GA4 on the live site:** `NEXT_PUBLIC_GA_MEASUREMENT_ID` isn't set on
-  Railway.
 - **`/admin` sign-in and contact-form emails:** the Supabase and Resend
   variables aren't set on Railway (they were empty on the VM too).
 - **Database outage check on the live site:** done on a local production
