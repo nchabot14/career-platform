@@ -41,8 +41,8 @@ aren't filled in with expected results.
   [who manages what](railway-migration.md#who-manages-what),
   [rollback](railway-migration.md#rollback)
 - README [Rollback](../README.md#rollback) for code, data and hosting
-- **Pending:** naming the real change made to the original data
-  ([note](railway-migration.md#how-the-data-moved))
+- Real change to the original data: the "Git and GitHub" skill, added on
+  Railway after the copy ([details](railway-migration.md#how-the-data-moved))
 
 ## 4. Azure HTTP and restart, final DNS and HTTPS
 

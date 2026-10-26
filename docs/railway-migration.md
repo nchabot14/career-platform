@@ -73,9 +73,16 @@ data: a freshly migrated database has 0 rows in every table, which
 the VM's rows were entered by hand after the VM was set up
 ([ex03.md](evidence/ex03.md#the-sqlite-database-i-expected-didnt-exist)), so
 matching them value for value can only come from copying the VM's database.
-*To confirm with the owner: whether a specific record was edited on the VM
-before the backup, to name here as the "real change". If not, the "Git and
-GitHub" skill below is the change, made on Railway after the copy.*
+**The real change: a new skill, made after the copy.** No record was edited
+on the VM before the backup. The change to the original data is the skill
+"Git and GitHub" (category Developer tools, published), which I had Claude
+Code add to Railway Postgres through `railway run` at **09:19:46 UTC on
+2026-10-26** (the row's `created_at`, read back the same day), after the
+copy and comparison. The VM doesn't have it. So the Railway database now
+holds 5 skills to the VM's 4. A seed restore could produce neither the
+VM's hand-entered rows nor this one, and the live site shows the skill, so
+it reads the transferred database (see
+[Proving it works](#proving-it-works)).
 
 ## Proving it works
 

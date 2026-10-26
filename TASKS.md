@@ -11,7 +11,6 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 
 ## Needs Nick
 
-- [ ] Real change to the original data: name the record edited on the VM before the copy, or confirm the "Git and GitHub" skill is the change (`docs/railway-migration.md`).
 - [ ] Confirm the SQLite and Zoho decision write-ups match your own reasons (`README.md` Decisions).
 - [ ] Write the reflection (`README.md`).
 - [ ] Optional: stop Railway Postgres briefly to repeat the outage check on the live site.
@@ -20,6 +19,7 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 
 ## Done
 
+- [x] Real change to the data recorded: "Git and GitHub" skill, added on Railway 2026-10-26 09:19 UTC, after the copy (`docs/railway-migration.md`)
 - [x] Before-MX message recorded: "Test 00", sent 10:33, delivered 11:06 after MX was published (`docs/evidence/ex06.md`)
 - [x] PR #12 merged and deployed (`b807b73f`, 2026-10-26 18:31 UTC); PR #13 merged
 - [x] GA4 on the live site: page view and outbound click in Realtime, 2026-10-26 (`docs/evidence/ex06.md#live-site-check`)
