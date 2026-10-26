@@ -132,10 +132,10 @@ a certificate error. `curl` reports that no certificate name matches
    `Verified: yes`, `Certificate status: ISSUE_FAILED`,
    `Let's Encrypt rate limit reached`, `retryable: false`.
 
-**Diagnosis.** Railway's first certificate attempts, at about 08:55 UTC, ran
-before the DNS change had spread and failed validation. Repeated failures hit
-Let's Encrypt's limit on failed validations, and Railway marked the failure
-as not retryable.
+**First diagnosis (morning).** Railway's first certificate attempts, at about
+08:55 UTC, ran before the DNS change had spread and failed validation. I
+concluded that repeated failures had hit Let's Encrypt's limit on failed
+validations, and that Railway had marked the failure as not retryable.
 
 **Repairs tried.**
 
@@ -147,14 +147,26 @@ as not retryable.
 | 18:08 | Removed and re-added the domain in Railway; updated `@` to the new target | The new domain failed with the same rate-limit error within one second of being created (`Created 18:08:27.949`) |
 
 Let's Encrypt's failed-validation limit resets within hours, and a domain
-created one second earlier can't have failed validation five times. So by
-18:08 the block is Railway's record of the morning failure, not a live
-Let's Encrypt limit.
+created one second earlier can't have failed validation five times. That
+didn't fit my first diagnosis.
 
-**Next step.** A Railway Help Station request asking them to clear the
-certificate state for `nickchabot.com` and issue again. Then repeat the
-checks above and the browser padlock check. *Unresolved as of 2026-10-26
-18:21 UTC.*
+**Revised diagnosis.** Railway's status page has an open incident, "TLS
+certificate issuance returning rate limit error". Its update at 17:44 UTC on
+2026-10-26 says: "We have diagnosed the issue causing this and are in touch
+with LetsEncrypt. We will update once we fix." So the rate-limit error comes
+from a problem on Railway's side affecting certificate issuance generally,
+not from limits my domain used up. My early failed attempts may have
+contributed, but they don't explain a new domain failing in one second.
+What I got wrong at first: I trusted the error message's wording ("rate
+limit reached") and assumed the cause was mine, without checking the
+provider's status page. That's now my first check when a managed service
+fails.
+
+**Next step.** Wait for Railway to resolve the incident, then retry the
+certificate once (`railway domain certificate retry nickchabot.com`),
+repeat the checks above, and check the padlock in a browser. No support
+request is needed, since Railway is already working on it. *Unresolved as
+of 2026-10-26 19:00 UTC.*
 
 **Rollback available.** The VM still has a valid certificate for both names
 until 2027-01-06. Changing `@` back to an `A` record for the VM, DNS only,

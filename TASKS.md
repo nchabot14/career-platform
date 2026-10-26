@@ -6,7 +6,7 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 
 ## Blocked by Railway
 
-- [ ] HTTPS certificate for `nickchabot.com`: Railway reports a Let's Encrypt rate limit and won't retry, even after the domain was removed and re-added. Next: a Railway Help Station request. Then check the padlock, and record the certificate in `docs/evidence/domain-and-https.md`.
+- [ ] HTTPS certificate for `nickchabot.com`: blocked by Railway's open incident "TLS certificate issuance returning rate limit error" (diagnosed 17:44 UTC 2026-10-26). When Railway marks it resolved: retry once, check the padlock, and record the certificate in `docs/evidence/domain-and-https.md`.
 - [ ] Repeat the live checks at `https://nickchabot.com` once it has a certificate: the LinkedIn change (`docs/evidence/reviewed-change.md`) and a GA4 page view.
 
 ## Needs Nick

@@ -234,8 +234,8 @@ to run it. Before committing, we should rehearse a restore from a
 
 As of 2026-10-26, 18:30 UTC:
 
-- **HTTPS at nickchabot.com:** the certificate isn't issued (Railway
-  support request next).
+- **HTTPS at nickchabot.com:** the certificate isn't issued, because of
+  an open Railway incident with certificate issuance.
 - **`/admin` sign-in and contact-form emails:** the Supabase and Resend
   variables aren't set on Railway (they were empty on the VM too).
 - **Database outage check on the live site:** done on a local production
