@@ -4,7 +4,7 @@
 |---|---|
 | Repository | <https://github.com/nchabot14/career-platform> |
 | Live HTTPS URL | <https://nickchabot.com>. **Certificate not issued yet** (see 4); the same deployment is at <https://career-platform-production-0e0b.up.railway.app> |
-| Final commit | *Filled in at submission* |
+| Final commit | `4e9c82f` (last content commit; the commit after it only fills in this line and the update below) |
 | Status checked | 2026-10-26 |
 
 Items marked **pending** or **unverified** haven't been checked yet. They
@@ -19,6 +19,13 @@ aren't filled in with expected results.
 > the certificate is missing. The investigation is in
 > [domain-and-https.md](evidence/domain-and-https.md#investigation-railway-certificate-not-issued).
 > Both checks are done at the Railway address in the meantime.
+>
+> **Update at submission (2026-10-26, 20:25 UTC / 1:25 PM PDT):** Railway's
+> status page says a fix is deployed and certificates are being issued
+> again, but this domain still showed `ISSUE_FAILED` ("Let's Encrypt rate
+> limit reached"). One manual retry at 20:25 UTC was refused with "Certificate
+> retry is not available for this failure." Requirements 3 and 5 remain
+> blocked by the Railway incident at submission time.
 
 ## 1. README, spec and plans
 
