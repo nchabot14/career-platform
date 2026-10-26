@@ -1,7 +1,12 @@
 # Operations
 
-How the career platform runs in production, and how to set it up, update it,
-back it up, and restore it.
+> **History.** This describes the Azure VM, which ran the site until
+> 2026-10-26 and is now the fallback. The site runs on Railway; see the
+> [README](../README.md#how-the-site-runs) and
+> [docs/railway-migration.md](railway-migration.md).
+
+How the career platform ran in production on Azure, and how to set it up,
+update it, back it up, and restore it.
 
 ## How it runs
 
