@@ -11,7 +11,7 @@ vi.mock("@/lib/services/public-profile", () => ({
   getPublicProfilePage: getPublicProfilePageMock,
 }));
 
-import HomePage from "@/app/(public)/page";
+import HomePage, { generateMetadata } from "@/app/(public)/page";
 
 const now = new Date("2026-01-01T00:00:00Z");
 const page: PublicProfilePage = {
@@ -47,10 +47,16 @@ const page: PublicProfilePage = {
   resume: { filename: "ada-lovelace-resume.pdf" },
 };
 
-beforeEach(() => getPublicProfilePageMock.mockResolvedValue(page));
+// Braces matter: a function returned from beforeEach runs as its cleanup.
+beforeEach(() => {
+  getPublicProfilePageMock.mockResolvedValue(page);
+});
 // Unmount, not just clear the DOM: React work left scheduled on a mounted tree
 // can run after jsdom is torn down and fail the run with "window is not defined".
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 it("renders the profile name as the only h1 and every published section", async () => {
   render(await HomePage());
@@ -123,13 +129,51 @@ it("links each published section from the section menu", async () => {
 });
 
 it("leaves unpublished sections out of the section menu", async () => {
-  getPublicProfilePageMock.mockResolvedValue({ ...page, projects: [], skills: [] });
+  getPublicProfilePageMock.mockResolvedValue({ ...page, experience: [], skills: [] });
 
   render(await HomePage());
 
   const menu = screen.getByRole("navigation", { name: /resume sections/i });
-  expect(within(menu).queryByRole("link", { name: "Projects" })).not.toBeInTheDocument();
+  expect(within(menu).queryByRole("link", { name: "Experience" })).not.toBeInTheDocument();
   expect(within(menu).queryByRole("link", { name: "Skills" })).not.toBeInTheDocument();
+});
+
+it("says so when no projects are published, instead of hiding the section", async () => {
+  getPublicProfilePageMock.mockResolvedValue({ ...page, projects: [] });
+
+  render(await HomePage());
+
+  const projects = screen.getByRole("region", { name: "Projects" });
+  expect(within(projects).getByText("No projects published yet.")).toBeVisible();
+});
+
+it("keeps the profile and says projects are unavailable when the database fails", async () => {
+  getPublicProfilePageMock.mockImplementation(async () => {
+    throw new Error("connect ECONNREFUSED");
+  });
+  vi.spyOn(console, "error").mockImplementation(() => {});
+
+  render(await HomePage());
+
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Nicholas Chabot");
+  expect(screen.getByText(/Loyola Marymount University with strong analytical/)).toBeVisible();
+  expect(screen.getByRole("link", { name: "LinkedIn (opens in new tab)" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Loyola Marymount University" })).toBeVisible();
+  const projects = screen.getByRole("region", { name: "Projects" });
+  expect(within(projects).getByText("Projects temporarily unavailable.")).toBeVisible();
+  expect(within(projects).queryAllByRole("link")).toHaveLength(0);
+  expect(screen.queryByText("connect ECONNREFUSED")).not.toBeInTheDocument();
+});
+
+it("builds page metadata from the fallback profile when the database fails", async () => {
+  getPublicProfilePageMock.mockImplementation(async () => {
+    throw new Error("connect ECONNREFUSED");
+  });
+  vi.spyOn(console, "error").mockImplementation(() => {});
+
+  const metadata = await generateMetadata();
+
+  expect(metadata.title).toMatch(/^Nicholas Chabot/);
 });
 
 it("lists direct email and phone contact details beside the form", async () => {

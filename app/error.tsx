@@ -5,7 +5,9 @@ type ErrorPageProps = {
   reset: () => void;
 };
 
-export default function ErrorPage({ error, reset }: ErrorPageProps) {
+// The error's own message can carry database or internal details, so
+// visitors only see a generic one; the server log has the rest.
+export default function ErrorPage({ reset }: ErrorPageProps) {
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-start justify-center gap-4 px-6 py-16 sm:px-10">
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-rose-700">
@@ -15,7 +17,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         Something went wrong
       </h1>
       <p className="max-w-xl text-base leading-7 text-slate-700">
-        {error.message || "Unexpected error while rendering this page."}
+        This page couldn&apos;t load. Please try again in a moment.
       </p>
       <button
         type="button"

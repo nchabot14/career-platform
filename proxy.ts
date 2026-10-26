@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { databaseIsReachable } from "@/lib/db/health";
 import { absoluteUrl } from "@/lib/site-url";
 
 function getSupabaseConfig() {
@@ -31,7 +32,23 @@ function redirectToLogin() {
   return NextResponse.redirect(absoluteUrl("/login"));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/") return homepage(request);
+  return ownerOnly(request);
+}
+
+// A page can't set its own status code once rendering starts, so the
+// homepage's 503 is decided here. The page still renders and shows its own
+// fallback; this only makes the status match. Form posts to "/" are Server
+// Actions and report their own failures.
+async function homepage(request: NextRequest) {
+  if (request.method !== "GET" && request.method !== "HEAD") return NextResponse.next();
+  if (await databaseIsReachable()) return NextResponse.next();
+
+  return NextResponse.next({ status: 503, headers: { "Cache-Control": "no-store" } });
+}
+
+async function ownerOnly(request: NextRequest) {
   const { url, anonKey } = getSupabaseConfig();
   const response = NextResponse.next();
 
@@ -72,5 +89,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/", "/admin/:path*"],
 };

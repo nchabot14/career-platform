@@ -19,7 +19,7 @@ vi.mock("@supabase/ssr", () => ({
 }));
 
 import { GET } from "@/app/auth/callback/route";
-import { middleware } from "@/middleware";
+import { proxy } from "@/proxy";
 
 // Behind a TLS-terminating proxy the app sees its own internal address,
 // while the visitor is on the public site.
@@ -66,8 +66,8 @@ it("callback never redirects off-site", async () => {
   expect(response.headers.get("location")).toBe("https://nickchabot.com/admin");
 });
 
-it("middleware sends signed-out visitors to the site's login page", async () => {
-  const response = await middleware(behindProxy("/admin"));
+it("proxy sends signed-out visitors to the site's login page", async () => {
+  const response = await proxy(behindProxy("/admin"));
 
   expect(response.status).toBe(307);
   expect(response.headers.get("location")).toBe("https://nickchabot.com/login");
