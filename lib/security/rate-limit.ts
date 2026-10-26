@@ -56,7 +56,9 @@ export function hashRequestKey(ip: string, secret = process.env.RATE_LIMIT_SECRE
   return createHmac("sha256", secret).update(ip).digest("hex");
 }
 
+// Railway's edge and nginx both overwrite X-Real-IP with the connecting
+// address; X-Forwarded-For can still carry entries the client sent.
 export function clientIp(headers: Headers) {
-  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || headers.get("x-real-ip")?.trim() || "unknown";
+  const realIp = headers.get("x-real-ip")?.trim();
+  return realIp || headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 }
