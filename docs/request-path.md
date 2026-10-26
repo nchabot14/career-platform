@@ -2,7 +2,7 @@
 
 Assumptions: a new HTTPS connection over TCP, and a DNS lookup with no cached answer.
 
-Items marked *check* aren't recorded in this repository. The Railway diagram shows the planned setup (Task 7 of `docs/superpowers/plans/2026-10-08-railway-postgres-migration.md`). As of 2026-10-20, DNS still pointed at the Azure VM and the Railway builds were failing (`docs/evidence/ex06.md`, `docs/evidence/dns-before-zoho.md`).
+Items marked *check* aren't recorded in this repository. The Azure diagram is the site until 2026-10-26; the Railway diagram is the site since the cutover that day. The email and analytics paths are the same for both hosts. Updated 2026-10-26.
 
 ## Azure
 
@@ -55,32 +55,75 @@ flowchart LR
   B["Browser<br/>same home hardware, NAT, ISP path as Azure"]
 
   subgraph DNSX["DNS lookup (separate)"]
-    CF["Cloudflare<br/>apex CNAME → Railway target<br/>flattened to A records · DNS only<br/>(planned in Task 7, check it's live)"]
+    CF["Cloudflare authoritative DNS<br/>@ CNAME → l3la2mgf.up.railway.app<br/>flattened to an A record · DNS only<br/>www: proxied, redirect rule"]
   end
 
-  subgraph RW["Railway (PaaS)"]
-    EDGE["Railway edge proxy :443<br/>TLS ends here<br/>Railway-managed certificate"]
-    APP["Web service container<br/>Next.js listening on $PORT"]
-    PG[("PostgreSQL service<br/>reached through DATABASE_URL<br/>private network (check port)")]
+  WWW["Cloudflare edge for www<br/>:80 and :443 → 301 to https://nickchabot.com/<br/>never reaches a server of mine"]
+
+  subgraph RW["Railway (PaaS), project fabulous-recreation"]
+    EDGE["Railway edge proxy<br/>:80 → 301 to https<br/>:443 TLS ends here<br/>Railway-managed Let's Encrypt cert<br/>(not issued yet, see domain-and-https.md)"]
+    APP["Web service career-platform<br/>Docker image, Next.js on :8080<br/>proxy.ts checks the DB before /"]
+    PG[("Postgres service, PostgreSQL 18<br/>private network :5432<br/>DATABASE_URL reference")]
   end
 
-  WWW["www.nickchabot.com<br/>proxied by Cloudflare<br/>301 → apex, a separate request"]
+  GH["GitHub main"] -->|"push → build → pre-deploy migrate → health check"| APP
 
   B -.->|"1 · DNS query, UDP 53"| CF
   B -->|"2 · TCP 443 + TLS<br/>client: browser · server: Railway edge"| EDGE
-  EDGE -->|"3 · plain HTTP + X-Forwarded-Proto<br/>client: edge · server: app"| APP
-  APP -->|"4 · SQL over TCP<br/>client: app · server: Postgres"| PG
+  B -.->|"www.nickchabot.com"| WWW
+  EDGE -->|"3 · plain HTTP on Railway's network<br/>+ X-Forwarded-*, X-Real-IP"| APP
+  APP -->|"4 · SQL over TCP 5432<br/>client: app · server: Postgres"| PG
   EDGE -.->|"5 · response, then asset requests"| B
 ```
+
+## Email (Zoho Mail, either host)
+
+```mermaid
+flowchart LR
+  EXT["Outside mailbox<br/>(Gmail)"]
+  CFD["Cloudflare DNS<br/>MX, SPF, DKIM, DMARC records"]
+  subgraph ZOHO["Zoho Mail (US data center)"]
+    ZIN["mx.zoho.com / mx2 / mx3<br/>SMTP :25, receives"]
+    BOX[("Mailbox<br/>nick@nickchabot.com")]
+    ZOUT["Zoho outgoing SMTP<br/>signs with DKIM d=nickchabot.com"]
+  end
+  ME["Me in a browser<br/>Zoho webmail, HTTPS :443"]
+
+  EXT -.->|"1 · looks up MX for nickchabot.com"| CFD
+  EXT -->|"2 · SMTP :25 with STARTTLS"| ZIN --> BOX
+  ME -->|"3 · read and reply over HTTPS"| BOX
+  BOX --> ZOUT
+  ZOUT -->|"4 · SMTP :25 to the recipient's MX"| EXT
+  EXT -.->|"5 · receiver checks SPF, DKIM, DMARC<br/>against the TXT records"| CFD
+```
+
+The web host isn't on this path: mail goes to Zoho whether the site runs on Azure or Railway. The site's contact form is separate: it saves messages in the database and would alert me through Resend, which isn't configured.
+
+## Analytics (GA4, either host)
+
+```mermaid
+flowchart LR
+  B["Visitor's browser"]
+  SITE["nickchabot.com<br/>(Railway, or Azure before)"]
+  GTM["www.googletagmanager.com<br/>gtag.js, HTTPS :443"]
+  GA["google-analytics.com/g/collect<br/>HTTPS :443"]
+  PROP["GA4 property<br/>Realtime, DebugView, reports"]
+
+  SITE -->|"1 · HTML with the tag<br/>(needs NEXT_PUBLIC_GA_MEASUREMENT_ID at build)"| B
+  B -->|"2 · loads gtag.js"| GTM
+  B -->|"3 · page_view, click events<br/>consent mode: cookieless until accepted"| GA --> PROP
+```
+
+The site's server never sends analytics; the visitor's browser talks to Google directly. On Railway, step 1 is missing until the measurement ID is set (see [ex06.md](evidence/ex06.md#check-that-failed)).
 
 ## What changes between the hosts
 
 | | Azure | Railway |
 |---|---|---|
-| DNS answer | A record → the VM's public IP | CNAME, flattened to the A records of Railway's edge |
+| DNS answer | A record → the VM's public IP | CNAME, flattened to the A record of Railway's edge |
 | Firewall | NSG rules that I manage | Railway decides what's exposed |
 | Where TLS ends | Nginx on my VM; I run Certbot | Railway's edge; Railway manages the certificate |
-| How the app is reached | Loopback `127.0.0.1:8000` and `:8001` | `$PORT` behind the proxy, so the app needs `X-Forwarded-Proto` (the reason for `076c39a`) |
+| How the app is reached | Loopback `127.0.0.1:8000` and `:8001` | Port 8080 behind Railway's proxy, so redirects use `NEXT_PUBLIC_SITE_URL` and rate limiting uses `X-Real-IP` |
 | Database | A local SQLite file, with no network hop | A separate Postgres service, reached through `DATABASE_URL` |
 
 ## Sources
@@ -90,3 +133,5 @@ flowchart LR
 - `docs/evidence/dns-before-zoho.md`: Cloudflare name servers and the DNS-only A records
 - `docs/evidence/ex03.md`: VM region and size
 - `docs/superpowers/plans/2026-10-08-railway-postgres-migration.md`: Railway edge, Postgres service, `www` redirect
+- `docs/evidence/domain-and-https.md`: current DNS records and HTTPS checks
+- `docs/evidence/ex06.md`: mail records and the GA4 path
