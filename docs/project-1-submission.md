@@ -71,7 +71,8 @@ aren't filled in with expected results.
   from the received headers
 - [dns-before-zoho.md](evidence/dns-before-zoho.md): DNS before any mail
   record
-- **Pending:** the message sent before MX existed, and what happened to it
+- [Before-MX message](evidence/ex06.md#1-email-tests): sent before any mail
+  record existed, delivered 33 minutes late once MX was published
 
 ## 7. GA4
 
