@@ -168,6 +168,22 @@ repeat the checks above, and check the padlock in a browser. No support
 request is needed, since Railway is already working on it. *Unresolved as
 of 2026-10-26 19:00 UTC.*
 
+**After Railway's fix.** Around 20:25 UTC Railway's status page said a fix
+was deployed and certificates were being issued again. This domain didn't
+recover: it still showed `ISSUE_FAILED` with the rate-limit error and now
+`Certificate retryable: false`. Manual retries at 20:25 and 22:33 UTC were
+both refused ("Certificate retry is not available for this failure"), and
+the dashboard has no retry button. So the certificate is stuck in the
+failed state the incident left it in, which only Railway can clear.
+
+**Support ticket.** I filed a Railway support ticket on 2026-10-26 (after
+22:33 UTC) asking them to clear the failed state or start a new certificate
+request, rather than removing and re-adding the domain again. Re-adding
+would change the target, need a Cloudflare change, and use another Let's
+Encrypt attempt that might fail the same way. If support hasn't answered
+within about a day, re-adding the domain is the fallback. *Waiting on
+Railway as of 2026-10-26.*
+
 **Rollback available.** The VM still has a valid certificate for both names
 until 2027-01-06. Changing `@` back to an `A` record for the VM, DNS only,
 restores HTTPS at the cost of serving the VM's older data (see
