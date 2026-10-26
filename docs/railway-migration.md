@@ -8,6 +8,22 @@ unchanged, as the fallback until Railway's trial decision is made.
 - Plan: [2026-10-08-railway-postgres-migration.md](superpowers/plans/2026-10-08-railway-postgres-migration.md)
 - Code change: [pull request #11](https://github.com/nchabot14/career-platform/pull/11)
 - How a request reaches each host: [request-path.md](request-path.md)
+- Domain and HTTPS after the cutover: [evidence/domain-and-https.md](evidence/domain-and-https.md)
+
+## Timeline
+
+| When | What |
+|---|---|
+| 2026-10-08 | Railway lesson. The plan is named for this date. |
+| 2026-10-20 12:17–12:30 PDT | Code commits on `feat/railway-postgres` (`076c39a` to `56ba5aa`). |
+| 2026-10-20 12:31 PDT | Plan committed (`2edd994`), a few minutes after the code it describes. Nothing on the live Azure site had changed. |
+| 2026-10-26 07:50 UTC | VM database backed up and checked. |
+| 2026-10-26, morning UTC | Railway deploy of the branch, data copy and comparison, write and update checks (below). |
+| 2026-10-26 08:55 UTC | **Cutover:** Cloudflare `@` changed from the VM's `A` record to a CNAME at Railway, DNS only. |
+| 2026-10-26 09:37 UTC | PR #11 merged; Railway deploys `main` from then on. |
+
+The plan was reviewed and updated on 2026-10-26 (`e901dcd`) before the
+cutover, with the status of every task.
 
 ## What changed in the code
 
@@ -51,6 +67,16 @@ pre-deploy command, the container's start command and the package scripts.
 
 The VM had no uploaded files and no writes after the backup was taken.
 
+**Why a seed restore can't pass as this transfer.** The project has no seed
+data: a freshly migrated database has 0 rows in every table, which
+`tests/unit/deploy-does-not-seed.test.ts` checks for every deploy path. All
+the VM's rows were entered by hand after the VM was set up
+([ex03.md](evidence/ex03.md#the-sqlite-database-i-expected-didnt-exist)), so
+matching them value for value can only come from copying the VM's database.
+*To confirm with the owner: whether a specific record was edited on the VM
+before the backup, to name here as the "real change". If not, the "Git and
+GitHub" skill below is the change, made on Railway after the copy.*
+
 ## Proving it works
 
 - **Reads:** the Railway site showed the VM's profile, experience, project and
@@ -63,6 +89,28 @@ The VM had no uploaded files and no writes after the backup was taken.
   (deployment `d63fdb05`). On the VM, the same update meant SSH, pull,
   install, a 6-minute build that pushed the 1 GiB VM deep into swap (the
   homepage took 27 seconds to load meanwhile), and a rolling restart.
+
+## Cutover and checks after it
+
+1. **Before moving the domain** (2026-10-26, on
+   `career-platform-production-0e0b.up.railway.app`): the homepage showed the
+   VM's data, `/api/health` returned 200, the deploy log showed
+   `Migrations applied.`, and the comparison above matched.
+2. **Cutover** at 08:55 UTC: `@` to a CNAME at Railway, DNS only. The `www`
+   redirect rule stayed as it was.
+3. **After the cutover:**
+   - DNS: `nickchabot.com` resolves to Railway's edge. **Pass.**
+   - `http://www` and `https://www` 301 to `https://nickchabot.com/`. **Pass.**
+   - Railway routes `nickchabot.com` to the app (200 with certificate checks
+     off). **Pass.**
+   - HTTPS with a valid certificate at `nickchabot.com`. **Fail**, Railway
+     hasn't issued it; investigation in
+     [domain-and-https.md](evidence/domain-and-https.md#investigation-railway-certificate-not-issued).
+   - Settings: on Railway only `DATABASE_URL` (a reference to the Postgres
+     service) and `NEXT_PUBLIC_SITE_URL` are set. The Supabase, Resend,
+     `OWNER_EMAIL`, `RATE_LIMIT_SECRET` and GA4 variables aren't, so `/admin`
+     sign-in, contact alerts and analytics don't work on Railway yet. They
+     didn't work on the VM either.
 
 ## Problems along the way
 
@@ -94,15 +142,25 @@ Uvicorn proxy setting and no `alembic upgrade head`; the equivalents are
 the deploy log. Local development uses PostgreSQL in Docker rather than
 SQLite, so tests run against the same database as production.
 
-## Who owns what now
+## Who manages what
 
-Railway owns the host, the container runtime, routing, TLS termination and
-the certificate, deploys from GitHub, and restarts on failure.
+| Layer | Azure VM | Railway |
+|---|---|---|
+| Operating system | **Me**: Ubuntu updates, packages, the swap and memory limits | Railway |
+| Runtime | **Me**: Node.js and pnpm installed on the VM | **Me**, through the `Dockerfile` (`node:24-slim`, pnpm 11.24.0); Railway runs the container |
+| Web entry point | **Me**: nginx, the NSG rules for 80/443, port 22 for SSH | Railway's edge; there's no SSH and no firewall to manage |
+| TLS | **Me**: Certbot, its renewal timer, nginx's certificate settings | Railway issues and renews the certificate. **Me**: DNS has to point at Railway, and when issuance fails (as now) I have to notice and chase it |
+| Application code | **Me** | **Me** |
+| Configuration and secrets | **Me**: `.env` on the VM, mode 600 | **Me**: variables on the Railway service. Railway stores them |
+| Database software | **Me**: SQLite is a library in the app; nothing to run | Railway runs the Postgres container. **Me**: Railway calls it unmanaged, so version upgrades, tuning and the TCP proxy are my decisions |
+| Data | **Me**: backups with `.backup` and cron | **Me**: backups (`pg_dump`), restores, migrations. Railway keeps the volume |
+| DNS | **Me**, in Cloudflare | **Me**, in Cloudflare |
 
-I still own the code, Node.js and dependency versions, environment variables
-and secrets, the schema and its migrations, the data and its backups
-(Railway calls its PostgreSQL service unmanaged), DNS in Cloudflare, testing,
-monitoring and recovery.
+What I still own on Railway: code, Node.js and dependency versions,
+environment variables and secrets, the schema and its migrations, the data
+and its backups, DNS, testing, monitoring and recovery. A PaaS removes the
+server, not the operating work: today's missing certificate and the ignored
+`railway.json` were both things only I would notice.
 
 ## Rollback
 
@@ -166,10 +224,16 @@ to run it. Before committing, we should rehearse a restore from a
 
 ## Still pending
 
-- The HTTPS certificate for nickchabot.com (rate-limited on 2026-10-26).
-  Then: check the padlock in a browser.
-- `/admin` sign-in and contact-form emails: the Supabase and Resend variables
-  aren't set on Railway yet (they were empty on the VM too).
+As of 2026-10-26, 18:30 UTC:
+
+- **HTTPS at nickchabot.com:** the certificate isn't issued (Railway
+  support request next).
+- **GA4 on the live site:** `NEXT_PUBLIC_GA_MEASUREMENT_ID` isn't set on
+  Railway.
+- **`/admin` sign-in and contact-form emails:** the Supabase and Resend
+  variables aren't set on Railway (they were empty on the VM too).
+- **Database outage check on the live site:** done on a local production
+  build ([database-outage.md](evidence/database-outage.md)), not on Railway.
 - Remove the Postgres TCP proxy once nothing on the laptop needs the
   database.
 - Retire or keep the Azure VM, when the instructor says.

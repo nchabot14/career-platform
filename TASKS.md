@@ -1,74 +1,37 @@
 # Project 1 Tasks
 
-Gaps found in the 2026-10-20 audit against the Project 1 requirements. Due 2026-10-22, 1:45 PM.
+Audit against the Project 1 requirements, first on 2026-10-20 and updated on
+2026-10-26. Evidence links are in
+[docs/project-1-submission.md](docs/project-1-submission.md).
 
-## 1. Profile and project data
+## Blocked by Railway
 
-- [ ] Home page shows the profile, "Projects temporarily unavailable", and HTTP 503 when the database fails: `app/(public)/page.tsx`, `lib/services/public-profile.ts`
-- [ ] Profile stays visible during a database outage (needs a source that doesn't depend on the database): `lib/services/public-profile.ts`
-- [ ] Error page stops showing raw `error.message` to visitors: `app/error.tsx`
-- [ ] Empty projects table shows a deliberate message instead of hiding the section: `app/(public)/page.tsx`
-- [ ] Tests for 200 when healthy, 503 on failure, and recovery on refresh without a restart: `tests/integration/`
-- [ ] Recorded check: stop the database, load the page (503), restore it, refresh (200, projects back), with dates and output
-- [ ] Recorded check of live content: education, links, and a labeled "this website, in progress" project
-- [ ] Explain the initial database choice (SQLite) and why: `README.md` decisions section (spec still says Supabase/Vercel)
+- [ ] HTTPS certificate for `nickchabot.com`: Railway reports a Let's Encrypt rate limit and won't retry, even after the domain was removed and re-added. Next: a Railway Help Station request. Then check the padlock, and record the certificate in `docs/evidence/domain-and-https.md`.
+- [ ] Repeat the live checks at `https://nickchabot.com` once it has a certificate: the LinkedIn change (`docs/evidence/reviewed-change.md`) and GA4.
 
-## 2. Azure deployment
+## Needs Nick
 
-- [ ] Record the HTTPS change: port 443 / `Allow-HTTPS` NSG rule and the Nginx TLS and `server_name` config: `docs/superpowers/plans/2026-10-01-operate-the-vm.md` or a new evidence file
-- [ ] Redact the VM's public IP consistently, or decide to keep it: `docs/evidence/ex03.md`, `docs/evidence/dns-before-zoho.md`
-- [ ] Recorded check that the VM is still running and SSH works (SSH timed out on 2026-10-20)
+- [ ] Merge PR #12 (homepage 503 and fallback profile), then check the Railway deploy.
+- [ ] Set `NEXT_PUBLIC_GA_MEASUREMENT_ID` on the Railway web service, then check a page view and an outbound click in GA4 Realtime on the live site, and add a dated result and screenshot to `docs/evidence/ex06.md`.
+- [ ] Before-MX message: what happened to the message sent before any mail record existed (bounce? when?). Fill in the line in `docs/evidence/ex06.md`, or mark it as not done.
+- [ ] Real change to the original data: name the record edited on the VM before the copy, or confirm the "Git and GitHub" skill is the change (`docs/railway-migration.md`).
+- [ ] Confirm the SQLite and Zoho decision write-ups match your own reasons (`README.md` Decisions).
+- [ ] Write the reflection (`README.md`).
+- [ ] Optional: stop Railway Postgres briefly to repeat the outage check on the live site.
+- [ ] Remove the Postgres TCP proxy; delete the old Railway projects `caring-comfort` and `thorough-trust`.
+- [ ] Fill in the final commit SHA in `docs/project-1-submission.md`, and submit the repository URL, live URL and SHA in Brightspace.
 
-## 3. Domain and HTTPS
+## Done
 
-- [ ] Point the bare domain at Railway and record Railway's certificate (hostname, validity, renewal): new evidence file
-- [ ] Add the Cloudflare redirect rule on a proxied `www` record and record it
-- [ ] Recorded check: `curl -Iv` for `http://www` and `https://www` both land on `https://nickchabot.com` with a valid certificate
-- [ ] Final DNS record table with the purpose of each record: new evidence file
-- [ ] Resolve the `www` contradiction (DNS-only A record in `docs/evidence/dns-before-zoho.md` vs. proxied in the Railway plan)
-
-## 4. Railway and PostgreSQL migration
-
-- [ ] Add the Railway migration spec: `docs/superpowers/specs/`
-- [ ] State honestly that the plan (`2edd994`) was committed after the code commits, and what existed before the deployment changed: `docs/superpowers/plans/2026-10-08-railway-postgres-migration.md`
-- [ ] Make one real change to the source data before the copy, and record it
-- [ ] Recorded source vs. target comparison: row counts, record content, and the rendered page
-- [ ] Record Railway project details, secrets set (names only), and pre-cutover tests on the Railway address
-- [ ] Record the cutover and post-cutover checks with dates and output
-- [ ] Azure vs. Railway responsibility comparison (OS, runtime, web entry, TLS, code, config, database software, data, DNS): `README.md`
-- [ ] Merge `feat/railway-postgres` into `main`
-- [ ] Link the spec and plan from `README.md` and `docs/project-1-submission.md`
-
-## 5. Reviewed change through Railway
-
-- [ ] Confirm which branch Railway deploys from, and fix it (the bot's railpack fixes went to `main`, which has no `Dockerfile`/`railway.json`)
-- [ ] Get one successful Railway deployment: Railway build and deploy logs
-- [ ] Recorded check linking a reviewed commit SHA to its Railway deployment and the change seen at nickchabot.com
-- [ ] Rollback section for code and database changes: `README.md`
-
-## 6. Zoho email
-
-- [ ] Add the before-MX message line and what happened to it: `docs/evidence/ex06.md`
-- [ ] Record the published MX, SPF, DKIM, and DMARC values and explain each: new evidence file or `docs/evidence/ex06.md`
-- [ ] Confirm the reply showed `nick@nickchabot.com` as the sender: `docs/evidence/ex06.md`
-- [ ] Note that Test 04 was sent through the Zoho MCP server and Test 02 through Zoho webmail: `docs/evidence/ex06.md`
-- [ ] Link `docs/evidence/ex06.md` and `docs/evidence/zoho-header-check.md` from `README.md` and `docs/project-1-submission.md`
-
-## 7. GA4
-
-- [ ] Recorded check on the live site: a page view and an outbound click in Realtime or DebugView: `docs/evidence/ex06.md`
-- [ ] Say whether Realtime or DebugView was used: `docs/evidence/ex06.md`
-- [ ] Explain how browser activity reaches GA4 and what the checks show: `docs/evidence/ex06.md`
-- [ ] Expand why the click event is useful: `docs/evidence/ex06.md`
-
-## 8. Engineering record
-
-- [ ] What the site does, the live address, and setup/update steps (now PostgreSQL): `README.md`
-- [ ] Azure and Railway architecture diagrams with locations, protocols, ports, data flow, email, and analytics: `README.md` or a diagrams file
-- [ ] How the migration preserved current data and which responsibilities moved: `README.md`
-- [ ] Two decisions with alternatives and reasons (Railway migration, managed vs. self-hosted email): `README.md`
-- [ ] Investigated failures linking `docs/evidence/ex03.md` and `docs/evidence/ex05.md` (labeled simulation), plus remaining limitations: `README.md`
-- [ ] Reflection: `README.md`
-- [ ] Costs, credits, Railway trial end date, and cleanup plan: `README.md`
-- [ ] Update to match the Nginx + `@8000`/`@8001` setup, or point to Railway: `docs/operations.md`
-- [ ] Repository URL, live HTTPS URL, final commit SHA, and links for all eight submission items: `docs/project-1-submission.md`
+- [x] Homepage keeps the profile, shows "Projects temporarily unavailable." and returns 503 when the database fails; recovers on refresh (`docs/evidence/database-outage.md`, PR #12)
+- [x] Empty projects table shows a message; error page hides raw error text
+- [x] Initial database choice explained (`README.md` Decisions)
+- [x] Railway migration plan, data comparison, cutover record, responsibilities table, rollback (`docs/railway-migration.md`)
+- [x] Merge `feat/railway-postgres` into `main` (PR #11)
+- [x] Final DNS record table and verification, `www` redirects, certificate investigation (`docs/evidence/domain-and-https.md`)
+- [x] Reviewed change linked to its commit and Railway deployment (`docs/evidence/reviewed-change.md`)
+- [x] Mail DNS records explained (`docs/evidence/ex06.md`)
+- [x] How browser activity reaches GA4, and why the click event is useful (`docs/evidence/ex06.md`)
+- [x] Diagrams with email and analytics paths (`docs/request-path.md`)
+- [x] README: live address, rollback, decisions, failures, limitations, costs and cleanup
+- [x] Submission index with all eight evidence groups
