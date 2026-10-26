@@ -78,6 +78,18 @@ it("shows an accessible Resume PDF link when a resume is published", async () =>
   expect(link).toHaveAttribute("href", "/resume");
 });
 
+it("always shows a LinkedIn button that opens the owner's profile in a new tab", async () => {
+  getPublicProfilePageMock.mockResolvedValue({ ...page, socialLinks: [], resume: null });
+
+  render(await HomePage());
+
+  const link = screen.getByRole("link", { name: "LinkedIn (opens in new tab)" });
+  expect(link).toHaveAttribute("href", "https://www.linkedin.com/in/nicholas-chabot-309527348/");
+  expect(link).toHaveAttribute("target", "_blank");
+  expect(link).toHaveAttribute("rel", expect.stringMatching(/noopener/));
+  expect(link).toHaveAttribute("rel", expect.stringMatching(/noreferrer/));
+});
+
 it("hides the Resume PDF link when no resume is published", async () => {
   getPublicProfilePageMock.mockResolvedValue({ ...page, resume: null });
 
