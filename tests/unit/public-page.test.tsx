@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { PublicProfilePage } from "@/lib/services/public-profile";
 
@@ -48,7 +48,9 @@ const page: PublicProfilePage = {
 };
 
 beforeEach(() => getPublicProfilePageMock.mockResolvedValue(page));
-afterEach(() => { document.body.innerHTML = ""; });
+// Unmount, not just clear the DOM: React work left scheduled on a mounted tree
+// can run after jsdom is torn down and fail the run with "window is not defined".
+afterEach(cleanup);
 
 it("renders the profile name as the only h1 and every published section", async () => {
   render(await HomePage());
