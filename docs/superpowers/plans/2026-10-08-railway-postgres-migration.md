@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 16.3.7, Node.js 24, pnpm 11.24.0, Drizzle ORM 0.45 + drizzle-kit 0.31, `postgres` (postgres.js) 3.4, `@libsql/client` (copy script only), Docker, Railway (CLI + config-as-code), Cloudflare DNS, Supabase Auth, Resend.
 
-**Spec:** No separate spec file. The requirements are the user's request of 2026-10-08 ("plan its move to Railway and PostgreSQL; the Railway project already exists with Postgres and a web service"), plus the answers they gave the same day: store uploaded files in Postgres, copy all VM data over, move the domain and keep the VM as a fallback. The user repeated the request on 2026-10-20; the plan was re-checked against the code and the live site that day (see "Changes since 2026-10-08").
+**Spec:** No separate spec file. The requirements are the user's request of 2026-10-08 ("plan its move to Railway and PostgreSQL; the Railway project already exists with Postgres and a web service"), plus the answers they gave the same day: store uploaded files in Postgres, copy all VM data over, move the domain and keep the VM as a fallback. The user repeated the request on 2026-10-20; the plan was re-checked against the code and the live site that day (see "Changes since 2026-10-08"). They repeated it again on 2026-10-26; start with "Status on 2026-10-26", which says which tasks are done and what changed.
 
 ## What exists today (checked 2026-10-08, re-checked 2026-10-20)
 
@@ -36,6 +36,28 @@ Checked 2026-10-20. No commit since 2026-10-08 touches `lib/db`, `lib/storage`, 
 - **No seeding, made explicit.** Nothing in the repo seeds today. A Global Constraint, a Task 0 emptiness check, a Task 5 test and a Task 6 row count now keep it that way.
 - **The VM's `NEXT_PUBLIC_SITE_URL` is the bare IP** (the live canonical URL and `og:url` are `http://<VM_PUBLIC_IP>`). Task 6 already sets this variable fresh instead of copying it.
 
+## Status on 2026-10-26
+
+| Task | State | Evidence |
+|---|---|---|
+| 0 | **Not started**, except SSH (Step 4), which works again. | No `railway` CLI on the laptop. Docker is installed but not running. |
+| 0A | **Code done, never merged to `main`.** | `076c39a` is only on `fix/redirects-behind-proxy` and this branch. Live `https://nickchabot.com/auth/callback` still redirects to `https://localhost:8001/login?error=callback`. |
+| 1–5 | **Committed** on `feat/railway-postgres` (`f476e3c` … `56ba5aa`), with `main` merged in (`067fd84`). | `pnpm lint`, `pnpm typecheck` and `pnpm test` (97 tests) pass. The execution ledger (`.superpowers/sdd/2026-10-08-railway-postgres-migration/progress.md`) records a full run on `56ba5aa` on 2026-10-20: integration 30/30, e2e 17/17, and the local image smoke test, run against an empty database. Since then `main` has been merged in, and that run hasn't been repeated. **No PR exists, so CI has never run on this branch** (`ci.yml` runs on `pull_request` and on pushes to `main`). The rehearsal copy with real VM data (Task 4, Step 4) was skipped. Task 5A re-runs the suites and the image. |
+| 5B (new) | **Not started.** Run it before 5A. | `clientIp` still trusts the first `X-Forwarded-For` entry. |
+| 6–8 | **Not started.** | |
+
+New findings, and where the plan now handles them:
+
+- **The web service already deploys GitHub `main`, automatically, with Railpack.** Railway's bot opened PRs #7 and #8 on 2026-10-20 after Railpack built commits `ebcb649` and `d24b867` as Python (it saw `pyproject.toml`), and they added `railpack.json` (`"provider": "node"`). So every push to `main` deploys the SQLite version of the app to Railway, which has no persistent disk. Anything written there is throwaway, and a push to `main` during Task 6 would replace the Postgres rehearsal deploy. Task 0, Step 2 now moves the service to this branch until Task 7.
+- **`railpack.json` is now dead config on this branch.** `railway.json` selects `"builder": "DOCKERFILE"`, which bypasses Railpack. Task 5A deletes it, so there is one build definition.
+- **The VM's `.env` has no secrets in it.** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CONTACT_NOTIFICATION_EMAIL`, `OWNER_EMAIL` and both Umami names are present but empty; only `DATABASE_URL` and `NEXT_PUBLIC_SITE_URL` have values. `CONTACT_FROM_EMAIL` and `RATE_LIMIT_SECRET` are absent. This is the cause of the live `/admin` 500 (`Missing Supabase environment variables` in the journal), not a code fault, and it means contact-form emails aren't sent either. Task 6, Step 1 now gets the values from the user's dashboards instead of copying the VM's file.
+- **Task 0A won't be merged to `main` separately.** Sign-in on the VM can't work without the Supabase values anyway, so the fix ships with this branch in Task 7.
+- **The VM holds very little data**, checked 2026-10-26: `profile` 1, `project` 1, `education` 2, `experience` 2, `skill` 4, every other table 0, and no `data/files` directory. Task 4, Step 4's empty-`files` fallback applies, and the copy steps should report exactly these counts.
+- **The laptop's `.env` has a `RAILWAY_DATABASE_URL` with the private host `postgres.railway.internal`**, which only resolves inside Railway (a connection from the laptop fails with `ENOTFOUND`). Every laptop-side step uses the Postgres service's `DATABASE_PUBLIC_URL`, as written. Task 0, Step 3 still has to record the Postgres version and confirm the database is empty.
+- **Existing rows come from the VM, so nothing seeds on deploy** (the user restated this on 2026-10-26). The rule is the "Deploys never seed data" Global Constraint, and these already enforce it on this branch: `tests/unit/deploy-does-not-seed.test.ts` (migrations, pre-deploy command, `CMD` and package scripts), the `e2e` name guard in `tests/e2e/prepare-database.mjs`, the `test` name guard in `tests/integration/test-database.ts`, and the copy script's refusal to write into a non-empty database without `--replace`. The checks that run against the real database are Task 0, Step 3 (the Railway database is empty before anything deploys) and Task 6, Step 3 (zero rows after the first deploy). If either finds rows, stop and ask the user. Don't drop them, and don't use `--replace` to get past it.
+- **The app sits behind Railway's proxy, and only some forwarded headers can be trusted** (raised by the user on 2026-10-26). There is no Uvicorn or other Python server to configure, because the site stays on Next.js. Next.js has no global "trust proxy" switch, so each use of a forwarded header is decided on its own (see the "Forwarded headers" Global Constraint). One fix is needed: `clientIp` in `lib/security/rate-limit.ts` trusts the *first* `X-Forwarded-For` entry. That's safe behind the VM's nginx, which overwrites both headers with `$remote_addr` (`/etc/nginx/sites-available/career-platform`, lines 14–15), but Railway staff describe its edge as appending the real address to `X-Forwarded-For` and overwriting `X-Real-IP`. On Railway, a visitor could send `X-Forwarded-For: <random>` on every request and never hit the contact-form limit. New Task 5B makes `X-Real-IP` the source.
+- **The VM was redeployed on 2026-10-26** to `main` at `0fa32fe`, so `/privacy` and the consent banner code are live there. `NEXT_PUBLIC_GA_MEASUREMENT_ID` isn't set on the VM, so the GA4 tag is off, as Task 7 expects.
+
 ## Global Constraints
 
 - Node.js 24 and pnpm 11.24.0 (`packageManager` in `package.json`). Next.js stays at 16.3.7. Before writing Next-specific code, read the relevant guide in `node_modules/next/dist/docs/`, as `AGENTS.md` requires.
@@ -45,8 +67,14 @@ Checked 2026-10-20. No commit since 2026-10-08 touches `lib/db`, `lib/storage`, 
 - Only published content appears publicly, including metadata and the sitemap.
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration` and `pnpm test:e2e` (which includes the axe WCAG 2.1 AA checks) all pass at the end of every task, except where a task says otherwise.
 - The repo is public on GitHub. Never commit secrets, IP addresses, `.env` values or copies of production data. Production data copies live in `~/career-migration/`, outside the repo, and are deleted after Task 8.
-- Work on branch `feat/railway-postgres`. Merge to `main` only in Task 7. Task 0A is the exception: it goes to `main` on its own branch first.
+- Work on branch `feat/railway-postgres`. Merge to `main` only in Task 7. (Task 0A was planned to go to `main` first; as of 2026-10-26 it ships with this branch instead.)
+- Until Task 7, the Railway web service deploys `feat/railway-postgres`, not `main` (Task 0, Step 2). Nothing on `main` may reach the Railway web service before the merge.
+- Secret values (Supabase key, Resend key, rate-limit secret) never appear in the chat or the repo. The user enters them, or they are piped from a local file outside the repo without being printed.
 - **Deploys never seed data.** Migrations create schema only, the pre-deploy command only applies migrations, and the start command only starts the server. Every real row in Railway Postgres comes from the VM, through `scripts/copy-sqlite-to-postgres.mjs`. Fixture inserts exist only in `tests/e2e/prepare-database.mjs` (refuses any database without `e2e` in its name) and the integration tests (refuse any `DATABASE_URL` without `test`). Task 5's test enforces this.
+- **Forwarded headers: each one is trusted only for what the proxy guarantees.** Railway's edge terminates TLS and forwards plain HTTP to the container.
+  - Redirect and canonical URLs use none of them: they come from `NEXT_PUBLIC_SITE_URL` (next bullet).
+  - The client IP for rate limiting comes from `X-Real-IP`, which both Railway's edge and the VM's nginx overwrite with the connecting address. The first `X-Forwarded-For` entry is only a fallback for when `X-Real-IP` is absent (Task 5B).
+  - Server Actions (the login form in `app/login/page.tsx`, and `app/(admin)/admin/actions.ts`) rely on Next.js comparing `Origin` with `X-Forwarded-Host`/`Host`. Per `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/serverActions.md`, no `allowedOrigins` entry is needed when the proxy forwards the public host. Task 6, Step 5 confirms this on Railway. Add an entry only if a Server Action fails there with an invalid-origin error, and then only for the public domain.
 - **Redirects never use the request's host or protocol.** Railway's proxy terminates TLS and forwards plain HTTP, so `request.url` inside the app is `http://localhost:<PORT>/…` (Next.js applies `X-Forwarded-Proto` only to the protocol, and never in middleware). Every absolute URL the app sends a browser to is built from `NEXT_PUBLIC_SITE_URL` with `absoluteUrl()` from `lib/site-url.ts` (Task 0A).
 
 ## Review Focus
@@ -58,6 +86,7 @@ Checked 2026-10-20. No commit since 2026-10-08 touches `lib/db`, `lib/storage`, 
 5. **Non-ASCII text** (emoji, accents, curly quotes) in contact messages and filenames must survive the SQLite-to-Postgres copy unchanged. Task 4's fixture uses it.
 6. **Sign-in behind a TLS-terminating proxy.** A visitor at `https://nickchabot.com` who opens `/admin`, or follows a magic link, must stay on `https://nickchabot.com`. On 2026-10-20 the live callback redirected to `https://localhost:8000/login?error=callback`, and a local `next start` with Railway-style headers redirected `/admin` to `http://localhost:8080/login`. Task 0A's tests pin both redirects, and Tasks 6 and 7 check them on the real addresses.
 7. **A deploy that seeds rows**, which would collide with the VM copy or put fixture content on the public site. Task 5's test scans the migrations and deploy commands, and Task 6 counts rows after the first deploy.
+8. **A visitor who forges `X-Forwarded-For`** to get around the contact-form limit. Behind Railway, they must still be limited by their real address. Task 5B's tests pin the header order, and Task 6, Step 6 sends a forged request to the real proxy.
 
 ---
 
@@ -88,6 +117,12 @@ railway service list 2>/dev/null || railway status --json
 
 Record the exact names of the web service and the Postgres service. Later tasks call them `<WEB_SERVICE>` and `<PG_SERVICE>`. Also record whether the web service is connected to the GitHub repo `nchabot14/career-platform`, and which branch it deploys. If it's connected to `main`, merging to `main` will deploy automatically (see Task 7).
 
+As of 2026-10-26 it is connected to `main` with auto-deploy (see "Status on 2026-10-26"). Also record:
+- the state of its latest deployment (`railway logs --service <WEB_SERVICE> --deployment | tail -20`), and any `*.up.railway.app` domain it already has;
+- every variable already set on it, by name only: `railway variables --service <WEB_SERVICE> --kv | cut -d= -f1`.
+
+Then, with the user, in the Railway dashboard (web service → Settings → Source), change the deploy branch from `main` to `feat/railway-postgres`. Expected: the next deploy builds this branch with the Dockerfile. It fails its health check until Task 6 sets the variables, which is harmless, because nothing points at it yet. Task 7, Step 1 switches it back to `main`.
+
 - [ ] **Step 3: Record the Postgres major version**
 
 `psql` isn't installed on the laptop, so run it from the Postgres image:
@@ -107,7 +142,9 @@ docker run --rm postgres:17 psql "$(railway variables --service <PG_SERVICE> --k
 
 Expected: no output. If tables exist, stop and show the list to the user. Don't drop anything without their go-ahead.
 
-- [ ] **Step 4: Restore SSH access to the VM**
+- [x] **Step 4: Restore SSH access to the VM**
+
+Done: SSH worked on 2026-10-26. Before each copy step, check it with `ssh -o ConnectTimeout=10 -i ~/.ssh/isba4775_azure azureuser@<VM_PUBLIC_IP> 'echo ok'`; if it times out, use the checks below.
 
 On 2026-10-20, SSH timed out while ports 80 and 443 answered, and the laptop's address matched the `Allow-SSH-Laptop` rule. Check, in order, and stop at the first finding:
 
@@ -127,7 +164,7 @@ ssh -v -o ConnectTimeout=10 -i ~/.ssh/isba4775_azure azureuser@<VM_PUBLIC_IP> 'e
 
 Expected at the end: `ok`. Tasks 4, 6, 7 and 8 can't run without it.
 
-- [ ] **Step 5: Create the branch**
+- [x] **Step 5: Create the branch** (done; `feat/railway-postgres` exists and is pushed)
 
 ```bash
 git switch main && git pull --ff-only
@@ -139,6 +176,8 @@ Do this after Task 0A is merged, so the branch includes it.
 ---
 
 ### Task 0A: Build redirects from the site address, not the request
+
+**2026-10-26: Steps 1–4 are done (`076c39a`, on this branch). Skip Step 5:** the fix ships with the migration in Task 7, because the VM can't sign anyone in without its Supabase values anyway.
 
 This task ships to `main` on its own, before the migration, because magic-link sign-in on the live site is broken by it today. Behind any TLS-terminating proxy (nginx now, Railway later), `request.url` is the server's internal address. Using the configured site address is correct on both, and a forged `Host` or `X-Forwarded-*` header can't change it.
 
@@ -1474,6 +1513,97 @@ git push
 
 ---
 
+### Task 5B: Take the client IP from `X-Real-IP` (added 2026-10-26)
+
+Do this before Task 5A, so 5A's full run and CI cover it.
+
+**Files:**
+- Modify: `lib/security/rate-limit.ts:59-62` (`clientIp`), and the comment above `hashRequestKey` if it mentions where the IP comes from
+- Test: `tests/unit/rate-limit.test.ts`
+
+**Interfaces:**
+- Produces: `clientIp(headers: Headers): string`, with the same signature. Its only caller is `app/api/contact/route.ts:12`, which doesn't change.
+
+- [ ] **Step 1: Write the failing tests**
+
+Add to `tests/unit/rate-limit.test.ts` (import `clientIp`):
+- `"prefers X-Real-IP, which the proxy overwrites"`: `clientIp(new Headers({ "x-real-ip": "203.0.113.9", "x-forwarded-for": "198.51.100.1, 203.0.113.9" }))` is `"203.0.113.9"`.
+- `"a forged X-Forwarded-For can't change the key when X-Real-IP is set"`: two `Headers` with the same `x-real-ip: 203.0.113.9`, and `x-forwarded-for` values `"1.1.1.1"` and `"2.2.2.2"`, give equal results.
+- `"falls back to the first X-Forwarded-For entry"`: `{ "x-forwarded-for": " 198.51.100.7 , 10.0.0.1" }` gives `"198.51.100.7"`.
+- `"returns unknown without either header"`: `new Headers()` gives `"unknown"`.
+
+Run `pnpm exec vitest run tests/unit/rate-limit.test.ts`. Expected: the first two FAIL (they return `198.51.100.1` and `1.1.1.1`), and the other two pass.
+
+- [ ] **Step 2: Swap the order in `clientIp`**
+
+Read `x-real-ip` (trimmed) first, then the first `x-forwarded-for` entry, then `"unknown"`. Add a one-line comment saying why: both Railway's edge and nginx overwrite `X-Real-IP`, while `X-Forwarded-For` can carry values the client sent.
+
+- [ ] **Step 3: Run the tests**
+
+```bash
+pnpm exec vitest run tests/unit/rate-limit.test.ts
+pnpm test && pnpm lint && pnpm typecheck
+```
+
+Expected: PASS. `tests/integration/contact-route.test.ts` sends only `x-forwarded-for`, so it still tells its callers apart through the fallback. Task 5A runs it.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add lib/security/rate-limit.ts tests/unit/rate-limit.test.ts
+git commit -m "fix: rate-limit by X-Real-IP, which the proxy sets"
+```
+
+---
+
+### Task 5A: Verify the branch end to end and open its PR (added 2026-10-26)
+
+Tasks 1–5 are committed, but the Postgres-backed suites, the image and the rehearsal copy have no recorded result, and CI has never run on the branch.
+
+**Files:**
+- Delete: `railpack.json`
+
+**Interfaces:**
+- Consumes: everything Tasks 1–5 produced.
+- Produces: an open draft PR from `feat/railway-postgres` to `main` with green CI, which Task 7, Step 1 merges.
+
+- [ ] **Step 1: Start Docker and the local Postgres**
+
+```bash
+open -a Docker && until docker info >/dev/null 2>&1; do sleep 2; done
+docker compose up -d postgres
+```
+
+- [ ] **Step 2: Run every suite**
+
+```bash
+pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration && pnpm test:e2e
+```
+
+Expected: all pass, and the e2e run reports 17 tests. Fix any failure here, in the task that owns the code, before going on.
+
+- [ ] **Step 3: Remove `railpack.json`**
+
+`railway.json` selects the Dockerfile builder, so Railpack never reads this file. Delete it, then run `pnpm exec vitest run tests/unit/deploy-does-not-seed.test.ts`. Expected: PASS.
+
+- [ ] **Step 4: Build and run the image, then rehearse the copy**
+
+Run Task 5, Step 4, then Task 4, Step 4, in that order. Expected rehearsal counts: `profile` 1, `project` 1, `education` 2, `experience` 2, `skill` 4, all others 0, `stored_file` 0, then `Copy complete.`
+
+- [ ] **Step 5: Commit, push and open a draft PR**
+
+```bash
+git rm railpack.json
+git commit -m "build: drop railpack.json; Railway builds from the Dockerfile"
+git push
+gh pr create --draft --base main --title "Move to Railway and PostgreSQL" --body "Implements docs/superpowers/plans/2026-10-08-railway-postgres-migration.md. Merging deploys to Railway; see Task 7 before merging."
+gh pr checks --watch
+```
+
+Expected: every CI check passes, including the Postgres integration and e2e jobs.
+
+---
+
 ### Task 6: Configure Railway and deploy to the Railway address
 
 This task is operations only. Nothing changes for nickchabot.com yet.
@@ -1481,6 +1611,24 @@ This task is operations only. Nothing changes for nickchabot.com yet.
 **Files:** none in the repo. The VM's environment is copied to `~/career-migration/vm.env` (outside the repo).
 
 - [ ] **Step 1: Copy the VM's settings into Railway variables**
+
+**2026-10-26: the VM's values are empty (see "Status on 2026-10-26"), so don't copy its file. Use this instead of the commands below.**
+
+1. Ask the user for the values, and have them enter the secret ones themselves:
+   - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase dashboard → Project Settings → API.
+   - `OWNER_EMAIL`: the address that may sign in to `/admin`.
+   - `RESEND_API_KEY`, `CONTACT_NOTIFICATION_EMAIL`, and `CONTACT_FROM_EMAIL`. The from address must be on a domain verified in Resend. If it's unset, the code falls back to `onboarding@resend.dev`, which only delivers to the Resend account owner.
+   - `NEXT_PUBLIC_UMAMI_*`: only if the user still uses Umami.
+   - Don't set `SUPABASE_SERVICE_ROLE_KEY`: no code reads it.
+2. Generate `RATE_LIMIT_SECRET` without printing it: `railway variables --service <WEB_SERVICE> --set "RATE_LIMIT_SECRET=$(openssl rand -hex 32)" --skip-deploys`.
+3. The user sets each secret by typing, in the Claude Code prompt, `! railway variables --service <WEB_SERVICE> --set "NAME=value" --skip-deploys` (or in the dashboard's Variables tab).
+4. Set the database reference, as below: `railway variables --service <WEB_SERVICE> --set 'DATABASE_URL=${{<PG_SERVICE>.DATABASE_URL}}' --skip-deploys`.
+5. Remove any variable Task 0, Step 2 found on the service that the app doesn't read (the list is in the "Expected names" paragraph below).
+6. Check by name only: `railway variables --service <WEB_SERVICE> --kv | cut -d= -f1 | sort`.
+
+Ask the user whether the VM should get the same values now, so `/admin` and contact email work there during the fallback week. That needs a VM rebuild, because two of them are `NEXT_PUBLIC_*`.
+
+The original commands, kept for reference:
 
 ```bash
 ssh -i ~/.ssh/isba4775_azure azureuser@<VM_PUBLIC_IP> 'cat ~/career-platform/.env' > ~/career-migration/vm.env
@@ -1509,10 +1657,10 @@ In the Supabase dashboard (Authentication → URL Configuration), add `https://<
 
 - [ ] **Step 3: Deploy the branch**
 
-If Task 0 found the web service connected to GitHub `main`, don't merge. Deploy from the local branch instead:
+Since Task 0, Step 2, the service deploys `feat/railway-postgres`, so redeploy its latest commit. Don't merge:
 
 ```bash
-railway up --service <WEB_SERVICE> --detach
+railway redeploy --service <WEB_SERVICE> --yes   # or the dashboard's Redeploy; `railway up --service <WEB_SERVICE> --detach` also works
 railway logs --service <WEB_SERVICE> --deployment
 ```
 
@@ -1556,14 +1704,24 @@ curl -s -o /dev/null -w '%{redirect_url}\n' $R/auth/callback
 Expected: `{"status":"ok"}`. The two redirects are `$R/login` and `$R/login?error=callback`, with the same `https://` host as `$R`, never `localhost` or `http://`. Home returns 200. The sitemap has 1 + (number of published projects) entries, with `<loc>` values on the Railway address. `/resume` returns `200 application/pdf` if a resume is uploaded, or 404 if not. The security headers are present.
 
 Then, in a browser:
-1. Sign in at `$R/login` with the owner email and confirm the magic link lands on `/admin`.
+1. Sign in at `$R/login` with the owner email and confirm the magic link lands on `/admin`. Submitting the login form is a Server Action, so this also checks the origin comparison behind Railway's proxy. If it fails with an invalid Server Actions request, see the "Forwarded headers" Global Constraint.
 2. Confirm the dashboard shows the copied contact messages and applications.
 3. Download one application document.
 4. Send a contact-form message; confirm it appears in `/admin/messages` and that the notification email arrives.
 
 - [ ] **Step 6: Check that rate limiting tells visitors apart**
 
-Send six contact messages from the laptop within a minute. The sixth should be refused. Then send one from a phone on mobile data, which should be accepted. If the phone is also refused, Railway's proxy isn't passing the visitor's address in `X-Forwarded-For`. Stop and report this: `clientIp` in `lib/security/rate-limit.ts` needs changing before the cutover.
+Send six contact messages from the laptop within a minute. The sixth should be refused. Then send one from a phone on mobile data, which should be accepted. If the phone is also refused, Railway's proxy isn't passing the visitor's address in `X-Real-IP`. Stop and report this: `clientIp` in `lib/security/rate-limit.ts` needs changing before the cutover.
+
+Then check that a forged header can't get around the limit. While the laptop is still limited, send:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" -X POST $R/api/contact -H "content-type: application/json" \
+  -H "X-Forwarded-For: 198.51.100.$RANDOM" -H "X-Real-IP: 198.51.100.$RANDOM" \
+  -d '{"name":"Header test","email":"test@example.com","subject":"Header test","message":"Forwarded-header spoof check"}'
+```
+
+Expected: `429`, the same refusal as the sixth message. If it's accepted (2xx), Railway passed the client's `X-Real-IP` through. Stop and report this before the cutover. Check the body shape against `app/api/contact/route.ts` first; a 400 means the body is wrong, not that the check passed.
 
 Afterwards, delete the test messages in `/admin/messages`.
 
@@ -1577,6 +1735,8 @@ The VM keeps running throughout, and nothing on it is changed.
 - Modify: `docs/operations.md`, `docs/how-this-site-is-secured.md`, `lib/security/rate-limit.ts` (comment only), `app/(public)/privacy/page.tsx`
 
 - [ ] **Step 1: Merge the branch**
+
+First, with the user, switch the web service's deploy branch back from `feat/railway-postgres` to `main` (Settings → Source), so the merge below triggers the deploy.
 
 ```bash
 gh pr ready && gh pr checks --watch && gh pr merge --merge --delete-branch
