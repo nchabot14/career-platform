@@ -4,4 +4,5 @@ export const siteOwner = {
   name: "Nicholas Chabot",
   email: "nchabot14@gmail.com",
   phone: { display: "626-695-8932", href: "tel:+16266958932" },
+  linkedin: "https://www.linkedin.com/in/nicholas-chabot-309527348/",
 } as const;

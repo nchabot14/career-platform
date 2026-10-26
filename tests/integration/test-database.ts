@@ -1,11 +1,12 @@
 // @vitest-environment node
 
 import { afterEach, beforeAll } from "vitest";
-import { migrate } from "drizzle-orm/libsql/migrator";
-import { db, databaseClient } from "@/lib/db/client";
+import { sql } from "drizzle-orm";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { db } from "@/lib/db/client";
 
-// Children are listed before parents so foreign keys never block a delete.
 const tables = [
+  "stored_file",
   "application_activity",
   "application_document",
   "application_contact",
@@ -25,7 +26,7 @@ let databaseReady: Promise<void> | undefined;
 function requireTestDatabaseUrl() {
   if (!process.env.DATABASE_URL?.includes("test")) {
     throw new Error(
-      "Integration tests delete every row after each test. Set DATABASE_URL to a dedicated test database (for example file:./data/career_platform.test.db) or run pnpm test:integration.",
+      "Integration tests delete every row after each test. Set DATABASE_URL to a dedicated test database (for example postgres://postgres:postgres@localhost:5432/career_platform_test) or run pnpm test:integration.",
     );
   }
 }
@@ -44,8 +45,5 @@ beforeAll(async () => {
 }, 30_000);
 
 afterEach(async () => {
-  await databaseClient.batch(
-    tables.map((table) => `DELETE FROM ${table}`),
-    "write",
-  );
+  await db.execute(sql.raw(`TRUNCATE TABLE ${tables.join(", ")} RESTART IDENTITY CASCADE`));
 }, 30_000);

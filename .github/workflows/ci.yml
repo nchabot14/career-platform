@@ -9,6 +9,20 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: career_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v5
 
@@ -27,8 +41,9 @@ jobs:
 
       - run: pnpm test
 
-      # SQLite needs no database server or secret: the tests create
-      # data/career_platform.test.db and apply the migrations themselves.
+      - name: Create test databases
+        run: psql postgres://postgres:postgres@localhost:5432/postgres -f scripts/create-test-databases.sql
+
       - run: pnpm test:integration
 
       - run: pnpm exec playwright install --with-deps chromium

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNotNull, lte, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, lte, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   applicationActivities,
@@ -167,8 +167,7 @@ export async function getApplicationDetail(id: string): Promise<ApplicationDetai
   const [contacts, documents, activities] = await Promise.all([
     db.select().from(applicationContacts).where(eq(applicationContacts.applicationId, id)).orderBy(asc(applicationContacts.createdAt)),
     db.select().from(applicationDocuments).where(eq(applicationDocuments.applicationId, id)).orderBy(desc(applicationDocuments.createdAt)),
-    // rowid breaks ties between entries recorded in the same millisecond.
-    db.select().from(applicationActivities).where(eq(applicationActivities.applicationId, id)).orderBy(asc(applicationActivities.occurredAt), sql`rowid`),
+    db.select().from(applicationActivities).where(eq(applicationActivities.applicationId, id)).orderBy(asc(applicationActivities.occurredAt), asc(applicationActivities.sequence)),
   ]);
 
   return { application, contacts, documents, activities };

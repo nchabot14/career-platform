@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { absoluteUrl } from "@/lib/site-url";
 
 function getSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,9 +25,10 @@ function getOwnerEmail() {
   return ownerEmail;
 }
 
-function redirectToLogin(request: NextRequest) {
-  const loginUrl = new URL("/login", request.url);
-  return NextResponse.redirect(loginUrl);
+// Built from the site address, because behind the proxy request.url is the
+// server's internal http://localhost address.
+function redirectToLogin() {
+  return NextResponse.redirect(absoluteUrl("/login"));
 }
 
 export async function middleware(request: NextRequest) {
@@ -50,7 +52,7 @@ export async function middleware(request: NextRequest) {
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user?.email) {
-    return redirectToLogin(request);
+    return redirectToLogin();
   }
 
   const ownerEmail = getOwnerEmail();

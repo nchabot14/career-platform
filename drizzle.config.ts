@@ -4,7 +4,7 @@ import { getDatabaseUrl } from "./lib/db/database-url";
 export default defineConfig({
   schema: "./lib/db/schema.ts",
   out: "./drizzle",
-  dialect: "turso",
+  dialect: "postgresql",
   dbCredentials: {
     url: getDatabaseUrl(),
   },

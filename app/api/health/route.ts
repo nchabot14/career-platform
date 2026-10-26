@@ -1,11 +1,12 @@
-import { databaseClient } from "@/lib/db/client";
+import { sql } from "drizzle-orm";
+import { db } from "@/lib/db/client";
 import { logServerError } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await databaseClient.execute("SELECT 1");
+    await db.execute(sql`select 1`);
     return Response.json({ status: "ok" }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     logServerError("health_check_failed", error, {});

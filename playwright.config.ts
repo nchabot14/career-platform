@@ -16,8 +16,8 @@ export default defineConfig({
     timeout: 300_000,
     reuseExistingServer: false,
     env: {
-      DATABASE_URL: "file:./data/career_platform.e2e.db",
-      FILE_STORAGE_DIR: "data/e2e-files",
+      DATABASE_URL:
+        process.env.E2E_DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/career_platform_e2e",
       NEXT_PUBLIC_SITE_URL: baseURL,
       // Placeholder Supabase settings let the /admin guard run and redirect
       // signed-out visitors; no real auth server is contacted without a session.

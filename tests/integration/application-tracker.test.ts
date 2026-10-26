@@ -1,10 +1,7 @@
 // @vitest-environment node
 
 import "@/tests/integration/test-database";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { expect, it } from "vitest";
 import {
   getApplicationDetail,
   listApplications,
@@ -15,17 +12,7 @@ import {
   changeApplicationStatus,
   createApplication,
 } from "@/lib/services/application-management";
-
-let root: string;
-
-beforeAll(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), "applications-int-"));
-  process.env.FILE_STORAGE_DIR = root;
-});
-
-afterAll(async () => {
-  await fs.rm(root, { recursive: true, force: true });
-});
+import { readStoredFile } from "@/lib/storage/files";
 
 const draft = {
   company: "Pioneer Circuits", role: "Analyst", source: "", jobUrl: "",
@@ -49,7 +36,7 @@ it("tracks an application from saved to applied with contacts, documents, and a 
     expect.objectContaining({ type: "created", resultingStatus: "saved" }),
     expect.objectContaining({ type: "status_transition", priorStatus: "saved", resultingStatus: "applied" }),
   ]);
-  await expect(fs.stat(path.join(root, detail!.documents[0].storageKey))).resolves.toBeTruthy();
+  expect(await readStoredFile(detail!.documents[0].storageKey)).toEqual(bytes);
 });
 
 it("filters applications by status and follow-up date", async () => {
