@@ -10,6 +10,16 @@
 Items marked **pending** or **unverified** haven't been checked yet. They
 aren't filled in with expected results.
 
+> **Blocked by a Railway incident.** HTTPS at `nickchabot.com` (requirement
+> 3) and checking the reviewed change at the domain (requirement 5) are
+> blocked by Railway's open incident "TLS certificate issuance returning
+> rate limit error", which Railway diagnosed at 17:44 UTC on 2026-10-26 and
+> is fixing with Let's Encrypt. DNS points at Railway, Railway has verified
+> the domain and routes it to the app, and the `www` redirects work; only
+> the certificate is missing. The investigation is in
+> [domain-and-https.md](evidence/domain-and-https.md#investigation-railway-certificate-not-issued).
+> Both checks are done at the Railway address in the meantime.
+
 ## 1. README, spec and plans
 
 - [README](../README.md)
