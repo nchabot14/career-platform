@@ -11,7 +11,6 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 
 ## Needs Nick
 
-- [ ] Write the reflection (`README.md`).
 - [ ] Optional: stop Railway Postgres briefly to repeat the outage check on the live site.
 - [ ] Remove the Postgres TCP proxy; delete the old Railway projects `caring-comfort` and `thorough-trust`.
 - [ ] Fill in the final commit SHA in `docs/project-1-submission.md`, and submit the repository URL, live URL and SHA in Brightspace.
@@ -32,5 +31,5 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 - [x] Mail DNS records explained (`docs/evidence/ex06.md`)
 - [x] How browser activity reaches GA4, and why the click event is useful (`docs/evidence/ex06.md`)
 - [x] Diagrams with email and analytics paths (`docs/request-path.md`)
-- [x] README: live address, rollback, decisions, failures, limitations, costs and cleanup
+- [x] README: live address, rollback, decisions, failures, limitations, costs and cleanup, reflection
 - [x] Submission index with all eight evidence groups

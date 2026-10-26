@@ -260,5 +260,18 @@ As of 2026-10-26:
 
 ## Reflection
 
-*To be written by me (Nick) in my own words: what I understand better after
-this project, and what I'd change.*
+Something that I understand better is how these requests actually get from a
+browser to the app. It is a complicated process where it starts through DNS,
+moves through TLS, then hits the proxy, which forwards the request to the
+app, and the app builds the page from the information it reads from the
+database.
+
+Something that surprised me is how the before-MX email ended up arriving 33
+minutes late, rather than bouncing. I thought this email would bounce, but
+instead, it just got delayed by a long time before it actually ended up
+sending, which is something that I would not have predicted or expected.
+
+Something I'd change is adding the site's real domain after DNS had spread,
+rather than before, since I believe that would make the process smoother. I
+also would've changed the fact that I did not set all the variables before
+the cutover, a good practice to do which I consciously chose not to.

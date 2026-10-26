@@ -93,7 +93,7 @@ aren't filled in with expected results.
   [decisions](../README.md#decisions),
   [remaining limitations](../README.md#remaining-limitations),
   [services, costs and cleanup](../README.md#services-costs-and-cleanup),
-  [reflection](../README.md#reflection) (**to be written**)
+  [reflection](../README.md#reflection)
 - Failure records: [ex03.md](evidence/ex03.md) (application and database),
   [ex05.md](evidence/ex05.md) (DNS/TLS, supplied simulation),
   [Railway certificate](evidence/domain-and-https.md#investigation-railway-certificate-not-issued)
