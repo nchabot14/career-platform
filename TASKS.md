@@ -12,11 +12,12 @@ Audit against the Project 1 requirements, first on 2026-10-20 and updated on
 ## Needs Nick
 
 - [ ] Optional: stop Railway Postgres briefly to repeat the outage check on the live site.
-- [ ] Remove the Postgres TCP proxy; delete the old Railway projects `caring-comfort` and `thorough-trust`.
+- [ ] Remove the Postgres TCP proxy once the laptop no longer needs the database (the README's backup commands use it).
 - [ ] Fill in the final commit SHA in `docs/project-1-submission.md`, and submit the repository URL, live URL and SHA in Brightspace.
 
 ## Done
 
+- [x] Old Railway projects `thorough-trust` and `caring-comfort` deleted (permanent removal 2026-10-28)
 - [x] Real change to the data recorded: "Git and GitHub" skill, added on Railway 2026-10-26 09:19 UTC, after the copy (`docs/railway-migration.md`)
 - [x] Before-MX message recorded: "Test 00", sent 10:33, delivered 11:06 after MX was published (`docs/evidence/ex06.md`)
 - [x] PR #12 merged and deployed (`b807b73f`, 2026-10-26 18:31 UTC); PR #13 merged
