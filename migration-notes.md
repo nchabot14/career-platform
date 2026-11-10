@@ -170,3 +170,31 @@ Status key: **Pass**, **Fail**, **Blocked** (waits on something still open), **N
   - Task 7, Step 5 browser checks by the owner: padlock on `nickchabot.com`, sign-in, contact email, a 9–10 MiB resume upload.
   - Task 8, Step 2: an uptime monitor on `https://nickchabot.com/api/health` (owner).
   - Task 9: no sooner than 2026-11-13 (≥3 days of clean uptime).
+
+## Cutover record
+
+| Item | Result |
+|---|---|
+| **When** | **2026-11-10, 20:27:28 UTC** (12:27 PT): Cloudflare `@` changed from `CNAME l3la2mgf.up.railway.app` to `A <EIP>`, DNS only. Certificate expanded to `nickchabot.com` at about 20:28 UTC. |
+| **nslookup** (2026-11-10 20:38:59 UTC) | `nslookup nickchabot.com` returns the **Elastic IP** from the laptop's default resolver, `1.1.1.1`, `8.8.8.8` and Cloudflare's authoritative `margot.ns.cloudflare.com`. `aws.nickchabot.com` also returns the Elastic IP. Right after the change, Cloudflare's own nameservers and `8.8.8.8` updated within about 10 s; `1.1.1.1` served the cached Railway CNAME for a few minutes (TTL Auto). |
+| **HTTPS check** (same time) | `curl -I http://nickchabot.com` gives `301` to `https://nickchabot.com/`. `curl -I https://nickchabot.com` gives `200 OK` with `Strict-Transport-Security: max-age=31536000; includeSubDomains`. `https://www.nickchabot.com` gives `301` to `https://nickchabot.com/` (Cloudflare). Certificate: Let's Encrypt `YE1`, SAN `aws.nickchabot.com, nickchabot.com`, expires 2027-02-08 19:29 UTC, `Verify return code: 0 (ok)` for `nickchabot.com`. `/api/health` returns `{"status":"ok"}`. `certbot renew --dry-run` succeeds for both names. |
+| **Fresh restore before cutover?** | **No.** The owner chose to keep the 2026-10-29 dump (deviation #21): Railway's Postgres had been shut down since 2026-11-08, and taking a fresh dump would have meant redeploying it on Railway. RDS was loaded from the 10/29 dump and matches it in all 14 tables by row count and per-row hash (Step 10, 2.1). Nothing could write to Railway after 10/29, because its web service had been FAILED since 10/26. |
+| **Safety snapshot** | `career-platform-after-cutover`, available 20:29:04 UTC. |
+| **Merge and redeploy from `main`** | Railway's deploy triggers for `career-platform` were turned off by the owner first; Railway's API confirmed **0 triggers**. PR #14 passed CI (1m30s) and was merged as **`e5cabd4`**; Railway started no build. The server's clone was switched back to `main` at `e5cabd4` (undoes deviation #12). `sudo deploy.sh main` (started 20:37:35 UTC): **exit 0 after 160 s**; `Migrations applied.` (nothing new); `Deployed e5cabd4…`. `current` → `releases/e5cabd4…-20261110T203735Z`, with `0cc6ec3` kept for rollback. Both copies healthy, 0 restarts, 0 OOM kills, no new app errors. Live: `/`, `/privacy`, `/login`, the project page, `/sitemap.xml` and `/api/health` return 200 on `nickchabot.com`; `aws.nickchabot.com` is healthy; `/admin` 500 and `/resume` 404 are expected (#23). My wrapper script reported "exit 1" only because its final `grep -c` for out-of-memory kills found none (grep exits 1 on 0 matches). |
+
+### What went wrong, and how it was handled
+
+| # | Problem | Effect | Handling |
+|---|---|---|---|
+| 1 | AWS Free plan rejected 7-day RDS backups (`FreeTierRestrictionError`). | Only 1 day of point-in-time restore. | Set to 1 day (#3); manual snapshot taken after cutover. |
+| 2 | Railway's Postgres was **shut down on 2026-11-08**, and the SSH tunnel needs a key registered with Railway. | No fresh dump was possible without changing Railway. | Used the restore-tested 10/29 dump; owner decision (#6, #7, #21). |
+| 3 | Docker wasn't running on the laptop for `pg_dump`. | — | Dumped from the EC2 instance instead (which then found #2). |
+| 4 | `ubuntu` couldn't read `/srv/career-platform` (mode 750), and the server's clone was on `main` without `deploy/aws/`. | The first load attempt stopped after `pg_restore`, before the role was created. | Read the files via `git show` and reran from the role step; the restore wasn't repeated (#9, #12). |
+| 5 | `deploy.sh` would rebuild **inside the live release** when redeploying the same commit. | A failed build could have broken the live site. Found before it ever happened. | Fixed test-first: a new directory per deploy (#15). |
+| 6 | After Certbot's first run, `https://<EIP>/` served the site. | The bare IP wasn't refused over HTTPS. | Default HTTPS server with `ssl_reject_handshake on`, test-first (#19). |
+| 7 | The first `certbot renew --dry-run` failed (`Unable to update challenge`), and two reruns hit Certbot's random pre-renewal delay. | Looked like broken renewal. | Rerun alone with `--no-random-sleep-on-renew`: succeeded, and later for both names too. |
+| 8 | `cloudwatch:PutMetricAlarm` denied. | No alarm-based auto-recovery. | EC2's simplified auto recovery is on (#14). |
+| 9 | Once, the Cloudflare CLI returned an empty record list. | Could have meant changing DNS with no snapshot or record id. | Caught by validating the snapshot before any change; the retry worked. |
+| 10 | Shell mistakes in my own commands (zsh doesn't word-split variables; `path` is special in zsh; nested quoting). | Some checks didn't run the first time. One secrets scan reported "clean" without reading the files. | Every one was rerun correctly. The scan was redone with a canary that proved it read the files. Nothing was changed on the strength of a check that hadn't run. |
+| 11 | The rollback-drill branch name `test/broken-build` clashed with the existing `test` branch. | Push rejected. | Used `drill/broken-build`, deleted afterwards (#13). |
+| 12 | Supabase, Resend and email values were still empty at cutover. | `/admin` returns 500; contact messages save with no email alert. | The owner chose to go live first (#23). Still open. |
