@@ -55,6 +55,15 @@ it("deploy builds before it migrates, and migrates before it switches", () => {
   expect(() => execFileSync("bash", ["-n", "deploy/aws/deploy.sh"])).not.toThrow();
 });
 
+it("deploy builds every release in a new directory, even for the same commit", () => {
+  const script = read("deploy/aws/deploy.sh");
+
+  // Redeploying the live commit (to pick up new NEXT_PUBLIC_* values) must
+  // not rebuild inside the release that is serving traffic.
+  expect(script).toMatch(/^release="\$app\/releases\/\$sha-\$\(date -u \+%Y%m%dT%H%M%SZ\)"$/m);
+  expect(script).not.toMatch(/if \[\[ ! -d \$release \]\]/);
+});
+
 it("app role can only read and write rows", () => {
   const sql = read("deploy/aws/app-role.sql");
 

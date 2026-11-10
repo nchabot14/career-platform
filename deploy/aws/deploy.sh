@@ -26,12 +26,12 @@ as_app() { runuser -u "$user" -- "$@"; }
 
 as_app git -C "$repo" fetch --prune origin
 sha=$(as_app git -C "$repo" rev-parse --verify "origin/$ref^{commit}")
-release="$app/releases/$sha"
+# A new directory every time, so redeploying the live commit (for example
+# after changing a NEXT_PUBLIC_* value) never builds inside the live release.
+release="$app/releases/$sha-$(date -u +%Y%m%dT%H%M%SZ)"
 echo "Deploying $ref at $sha"
 
-if [[ ! -d $release ]]; then
-  as_app git -C "$repo" worktree add --detach "$release" "$sha"
-fi
+as_app git -C "$repo" worktree add --detach "$release" "$sha"
 as_app ln -sf "$app/shared/.env" "$release/.env"
 
 cd "$release"
