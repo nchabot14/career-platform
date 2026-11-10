@@ -20,6 +20,22 @@ it("systemd unit runs the app unprivileged on loopback", () => {
   expect(unit).not.toMatch(/EnvironmentFile=.*migrate\.env/);
 });
 
+it("nginx refuses HTTPS for a bare IP or unknown hostname", () => {
+  const config = read("deploy/aws/nginx-career-platform.conf");
+  const defaultHttps = config.match(/server\s*\{[^}]*listen 443 ssl default_server;[^}]*\}/)?.[0] ?? "";
+
+  // Without this block, nginx answers any HTTPS request with the only TLS
+  // server it has, the site itself.
+  expect(defaultHttps).toContain("listen [::]:443 ssl default_server;");
+  expect(defaultHttps).toContain("ssl_reject_handshake on;");
+});
+
+it("nginx also serves the aws.nickchabot.com preview name", () => {
+  const config = read("deploy/aws/nginx-career-platform.conf");
+
+  expect(config).toContain("server_name nickchabot.com aws.nickchabot.com;");
+});
+
 it("nginx overwrites client IP headers and serves only nickchabot.com", () => {
   const config = read("deploy/aws/nginx-career-platform.conf");
 
@@ -27,7 +43,7 @@ it("nginx overwrites client IP headers and serves only nickchabot.com", () => {
   expect(config).toContain("proxy_set_header X-Forwarded-For $remote_addr;");
   expect(config).not.toContain("$proxy_add_x_forwarded_for");
   expect(config).toContain("client_max_body_size 11m;");
-  expect(config).toContain("server_name nickchabot.com;");
+  expect(config).toContain("server_name nickchabot.com");
   expect(config).toContain("server 127.0.0.1:8000");
   expect(config).toContain("server 127.0.0.1:8001");
 
