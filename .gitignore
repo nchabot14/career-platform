@@ -150,6 +150,15 @@ activemq-data/
 # Environments
 .env
 .envrc
+# Secrets: every env file except the committed template, database dumps,
+# and private keys. Real backups live outside the repo in ~/backups/.
+.env*
+!.env.example
+*.dump
+*.sql.gz
+backup-*.sql
+*.pem
+*.key
 .venv
 env/
 venv/
