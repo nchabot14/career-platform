@@ -1,0 +1,26 @@
+# Installed as /etc/systemd/system/career-platform@.service and run twice,
+# as career-platform@8000 and career-platform@8001; %i is the port.
+# `next start` reads .env from the working directory (shared/.env, linked
+# into each release). The admin database URL in shared/migrate.env is
+# never loaded here; only deploy.sh reads it.
+[Unit]
+Description=Career platform (Next.js) on 127.0.0.1:%i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=career-platform
+Group=career-platform
+WorkingDirectory=/srv/career-platform/current
+Environment=NODE_ENV=production
+Environment=NODE_EXTRA_CA_CERTS=/etc/ssl/rds/global-bundle.pem
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p %i
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/career-platform
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
